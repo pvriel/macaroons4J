@@ -33,6 +33,7 @@ public abstract class Macaroon implements Serializable {
 
     /**
      * Method to symmetrically encrypt an element.
+     * Implementation specification: encrypted = encrypt(key, original) iff. original = decrypt(key, encrypted)
      * @param   key
      *          A symmetric key, encoded as a String instance.
      * @param   original
@@ -40,13 +41,12 @@ public abstract class Macaroon implements Serializable {
      * @return  The element, encrypted with the given key.
      * @throws  Exception
      *          If the element can not be encrypted with the given key.
-     * @implSpec
-     *          encrypted = encrypt(key, original) <-> original = decrypt(key, encrypted)
      */
     protected abstract byte[] encrypt(@NotNull String key, byte[] original) throws Exception;
 
     /**
      * Method to symmetrically decrypt an encrypted element.
+     * Implementation specification: encrypted = encrypt(key, original) iff. original = decrypt(key, encrypted)
      * @param   key
      *          The key to decrypt the encrypted element with, encoded as a String instance.
      * @param   encrypted
@@ -54,8 +54,6 @@ public abstract class Macaroon implements Serializable {
      * @return  The decrypted element, as an UTF8 String instance.
      * @throws  Exception
      *          If the element can not be decrypted using the given key.
-     * @implSpec
-     *          encrypted = encrypt(key, original) <-> original = decrypt(key, encrypted)
      */
     protected abstract @NotNull String decrypt(@NotNull String key, byte[] encrypted) throws Exception;
 
@@ -89,9 +87,9 @@ public abstract class Macaroon implements Serializable {
 
     /**
      * Method to add a first-party caveat to, and update the signature of the Macaroon instance.
+     * After calling this method, the given {@link FirstPartyCaveat} instance is owned by this Macaroon instance.
      * @param   caveat
      *          The {@link FirstPartyCaveat} to add to the Macaroon instance.
-     * @apiNote After calling this method, the given {@link FirstPartyCaveat} instance is owned by this Macaroon instance.
      */
     public void addCaveat(@NotNull FirstPartyCaveat caveat) {
         addCaveat(caveat, caveat.getCaveatIdentifier());
@@ -99,11 +97,11 @@ public abstract class Macaroon implements Serializable {
 
     /**
      * Method to add a third-party caveat to, and update the signature of the Macaroon instance.
+     * After calling this method, the given {@link ThirdPartyCaveat} instance is owned by this Macaroon instance.
      * @param   caveat
      *          The {@link ThirdPartyCaveat} to add to the Macaroon instance.
      * @throws  Exception
      *          If the third-party caveat can not be added to the Macaroon instance.
-     * @apiNote After calling this method, the given {@link ThirdPartyCaveat} instance is owned by this Macaroon instance.
      */
     public void addCaveat(@NotNull ThirdPartyCaveat caveat) throws Exception {
         caveat.setCaveatRootOrVerificationKey(encrypt(this.macaroonSignature, caveat.getCaveatRootOrVerificationKey()));
@@ -113,9 +111,9 @@ public abstract class Macaroon implements Serializable {
 
     /**
      * Method to bind a discharge Macaroon to this Macaroon instance, as preparation for a request.
+     * After calling this method, the given discharge Macaroon is owned by this Macaroon instance.
      * @param   dischargeMacaroon
      *          Another Macaroon instance, which will be bound to this Macaroon instance.
-     * @apiNote After calling this method, the given discharge Macaroon is owned by this Macaroon instance.
      */
     public void bindMacaroonForRequest(@NotNull Macaroon dischargeMacaroon) {
         dischargeMacaroon.macaroonSignature = bindSignatureForRequest(dischargeMacaroon.macaroonSignature);

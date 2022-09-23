@@ -4,7 +4,7 @@ import java.io.Serializable;
 
 /**
  * Abstract class, representing caveats in general.
- * @apiNote Besides the {@link FirstPartyCaveat} and {@link ThirdPartyCaveat} classes, this class should not have any other child classes.
+ * API Note: besides the {@link FirstPartyCaveat} and {@link ThirdPartyCaveat} classes, this class should not have any other child classes.
  */
 abstract class Caveat implements Serializable {
 
