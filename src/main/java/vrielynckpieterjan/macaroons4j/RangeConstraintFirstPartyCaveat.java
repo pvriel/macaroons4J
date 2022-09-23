@@ -27,7 +27,7 @@ public class RangeConstraintFirstPartyCaveat extends FirstPartyCaveat {
      * @param   upperBound
      *          The upper bound of the range.
      * @throws  IllegalArgumentException
-     *          If an invalid range (upper bound < lower bound) is given.
+     *          If an invalid range (upper bound lower than lower bound) is given.
      */
     public RangeConstraintFirstPartyCaveat(@NotNull String rangeUUID, long lowerBound, long upperBound) throws IllegalArgumentException {
         super(generateCaveatIdentifier(rangeUUID, lowerBound, upperBound));
