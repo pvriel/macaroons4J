@@ -2,9 +2,6 @@ plugins {
     id 'java-library'
 }
 
-sourceCompatibility = 17
-targetCompatibility = 17
-
 group 'vrielynckpieterjan'
 version '1.0-SNAPSHOT'
 
