@@ -12,14 +12,27 @@ import java.security.spec.InvalidKeySpecException;
 import java.util.Base64;
 import java.util.logging.Logger;
 
-
+/**
+ * Class representing a simple {@link Macaroon} implementation.
+ * <br>Encryption is accomplished by using AES encryption; the key and IV sizes are defined publicly as static values in this class.
+ * <br>The MAC method uses Mac.getInstance("HmacSHA256").
+ */
 public class SimpleMacaroon extends Macaroon {
 
-    private final static Logger logger = Logger.getLogger(SimpleMacaroon.class.getName());
+    private final static @NotNull Logger logger = Logger.getLogger(SimpleMacaroon.class.getName());
 
-    private final static int AES_KEY_SIZE = 128 / 8;
-    private final static int IV_SIZE = 128 / 8;
+    public final static int AES_KEY_SIZE = 128 / 8;
+    public final static int IV_SIZE = 128 / 8;
 
+    /**
+     * Constructor for the {@link SimpleMacaroon} class.
+     * @param   secretString
+     *          The secret value of the Macaroon, which is required to both generate and verify the signature of the Macaroon instance.
+     * @param   macaroonIdentifier
+     *          The public identifier of the Macaroon instance.
+     * @param   hintTargetLocation
+     *          A hint to the target location (which typically issues the Macaroon instance).
+     */
     public SimpleMacaroon(@NotNull String secretString, byte[] macaroonIdentifier, @NotNull String hintTargetLocation) {
         super(secretString, macaroonIdentifier, hintTargetLocation);
     }

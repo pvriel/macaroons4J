@@ -10,17 +10,37 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * Class representing membership constraints.
+ * <br>A membership constraint basically represents a UUID and a set, which can be added to a {@link VerificationContext}.
+ * <br>After this process, a membership constraint with the same UUID is only valid if the set of the membership constraint
+ * is a (sub-)set of the set that is already registered within the verification context.
+ */
 public class MembershipConstraintFirstPartyCaveat extends FirstPartyCaveat {
 
     private final static @NotNull Pattern regexPattern = Pattern.compile("(.*) ∈ \\[(.*)]");
 
-    public MembershipConstraintFirstPartyCaveat(@NotNull String membershipUUID, @NotNull HashSet<String> requiredMembers) {
+    /**
+     * Constructor for the {@link MembershipConstraintFirstPartyCaveat} class.
+     * @param   membershipUUID
+     *          The UUID of the membership constraint.
+     * @param   requiredMembers
+     *          The elements that should be present for the membership UUID, in order for the membership constraint to be valid.
+     * @throws  IllegalArgumentException
+     *          If any element contains the ', ' char sequence. This is not supported at the moment.
+     */
+    public MembershipConstraintFirstPartyCaveat(@NotNull String membershipUUID, @NotNull HashSet<String> requiredMembers) throws IllegalArgumentException {
         super(generateCaveatIdentifier(membershipUUID, requiredMembers));
 
         boolean illegalArgument = requiredMembers.stream().anyMatch(element -> element.contains(", "));
         if (illegalArgument) throw new IllegalArgumentException("The given set contains an element which contains the ', ' sequence. This is currently unsupported, however.");
     }
 
+    /**
+     * @throws  IllegalStateException
+     *          If the members from this membership constraint don't represent a subset of the members that are already
+     *          stored as part of the verification context.
+     */
     @Override
     protected void verify(@NotNull Macaroon macaroon, @NotNull VerificationContext context) throws IllegalStateException {
         Pair<String, Set<String>> UUIDAndRequiredMembers = extractMembershipUUIDAndRequiredMembersFromCaveatIdentifier();
@@ -30,11 +50,11 @@ public class MembershipConstraintFirstPartyCaveat extends FirstPartyCaveat {
         context.addMembershipConstraint(membershipUUID, requiredMembers);
     }
 
-    private static byte[] generateCaveatIdentifier(@NotNull String membershipUUID, @NotNull Set<String> requiredMembers) {
+    private static byte[] generateCaveatIdentifier(@NotNull String membershipUUID, @NotNull Set<@NotNull String> requiredMembers) {
         return (membershipUUID + " ∈ " + requiredMembers).getBytes(StandardCharsets.UTF_8);
     }
 
-    private @NotNull Pair<String, Set<String>> extractMembershipUUIDAndRequiredMembersFromCaveatIdentifier() {
+    private @NotNull Pair<@NotNull String, @NotNull Set<@NotNull String>> extractMembershipUUIDAndRequiredMembersFromCaveatIdentifier() {
         String caveatIdentifierAsString = new String(getCaveatIdentifier(), StandardCharsets.UTF_8);
 
         Matcher matcher = regexPattern.matcher(caveatIdentifierAsString);

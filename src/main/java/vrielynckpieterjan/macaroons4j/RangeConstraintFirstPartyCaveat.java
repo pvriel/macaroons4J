@@ -7,16 +7,39 @@ import java.nio.charset.StandardCharsets;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * Class representing range constraints.
+ * <br>A range constraint basically represents a UUID and a range, which can be added to a {@link VerificationContext}.
+ * <br>After this process, a range constraint with the same UUID is only valid if the range of that range constraint
+ * overlap with the already registered range within the verification context.
+ * In that case, the overlap becomes the new range for that UUID.
+ */
 public class RangeConstraintFirstPartyCaveat extends FirstPartyCaveat {
 
     private final static @NotNull Pattern regexPattern = Pattern.compile("(.*) ∈ \\[(.*), (.*)]");
 
-    public RangeConstraintFirstPartyCaveat(@NotNull String rangeUUID, long lowerBound, long upperBound) {
+    /**
+     * Constructor for the {@link RangeConstraintFirstPartyCaveat} instance.
+     * @param   rangeUUID
+     *          The UUID of the range constraint.
+     * @param   lowerBound
+     *          The lower bound of the range.
+     * @param   upperBound
+     *          The upper bound of the range.
+     * @throws  IllegalArgumentException
+     *          If an invalid range (upper bound < lower bound) is given.
+     */
+    public RangeConstraintFirstPartyCaveat(@NotNull String rangeUUID, long lowerBound, long upperBound) throws IllegalArgumentException {
         super(generateCaveatIdentifier(rangeUUID, lowerBound, upperBound));
 
         if (upperBound < lowerBound) throw new IllegalArgumentException("The given lower bound is greater than the given upper bound.");
     }
 
+    /**
+     * @throws  IllegalStateException
+     *          If the range defined by this range constraint does not overlap the range (for the same range UUID)
+     *          that is already registered within the given verification context.
+     */
     @Override
     protected void verify(@NotNull Macaroon macaroon, @NotNull VerificationContext context) throws IllegalStateException {
         Pair<String, Pair<Long, Long>> UUIDAndRange = extractRangeUUIDAndBoundsFromCaveatIdentifier();
@@ -26,7 +49,7 @@ public class RangeConstraintFirstPartyCaveat extends FirstPartyCaveat {
         context.addRangeConstraint(rangeUUID, range);
     }
 
-    private @NotNull Pair<String, Pair<Long, Long>> extractRangeUUIDAndBoundsFromCaveatIdentifier() {
+    private @NotNull Pair<@NotNull String, @NotNull Pair<@NotNull Long, @NotNull Long>> extractRangeUUIDAndBoundsFromCaveatIdentifier() {
         String caveatIdentifierAsString = new String(getCaveatIdentifier(), StandardCharsets.UTF_8);
 
         Matcher matcher = regexPattern.matcher(caveatIdentifierAsString);

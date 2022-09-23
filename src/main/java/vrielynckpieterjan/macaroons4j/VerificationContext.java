@@ -8,17 +8,32 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-// TODO: remove abstract and make sure all the methods are implemented.
+/**
+ * Class representing contexts in which {@link Macaroon} instances can be verified.
+ */
 public class VerificationContext {
 
-    private final Map<String, Set<String>> membershipConstraints;
-    private final Map<String, Pair<Long, Long>> rangeConstraints;
+    private final @NotNull Map<@NotNull String, @NotNull Set<@NotNull String>> membershipConstraints;
+    private final @NotNull Map<@NotNull String, @NotNull Pair<@NotNull Long, @NotNull Long>> rangeConstraints;
 
+    /**
+     * Default constructor for the {@link VerificationContext} class.
+     */
     public VerificationContext() {
         this(new HashMap<>(), new HashMap<>());
     }
 
-    void addMembershipConstraint(@NotNull String membershipUUID, @NotNull Set<String> shouldContainElements) {
+    /**
+     * Method to add a membership constraint to the verification context.
+     * <br>If the method is called for a first time for a specific membership UUID, the membership is just set to the given elements.
+     * <br>If the method is called again for a specific membership UUID, the membership is only updated if the given set is a (sub-)set
+     * of the set that was used to call the method the previous time. Otherwise, this method throws an {@link IllegalStateException}.
+     * @param   membershipUUID
+     *          The UUID of the membership.
+     * @param   shouldContainElements
+     *          The elements that should be included in the membership.
+     */
+    void addMembershipConstraint(@NotNull String membershipUUID, @NotNull Set<@NotNull String> shouldContainElements) {
         if (!membershipConstraints.containsKey(membershipUUID)) {
             membershipConstraints.put(membershipUUID, shouldContainElements);
             return;
@@ -34,6 +49,16 @@ public class VerificationContext {
         membershipConstraints.put(membershipUUID, copyOfShouldContainElements);
     }
 
+    /**
+     * Method to add a range constraint to the verification context.
+     * <br>If the method is called for a first time for a specific range UUID, the range is just set.
+     * <br>If the method is called again for a specific range UUID, the range is only updated to the overlap, if the given range overlaps
+     * with the current range. Otherwise, this method throws an {@link IllegalStateException}.
+     * @param   rangeUUID
+     *          The UUID of the range.
+     * @param   range
+     *          The new range.
+     */
     void addRangeConstraint(@NotNull String rangeUUID, @NotNull Pair<Long, Long> range) {
         long startNewRange = range.getLeft();
         long endNewRange = range.getRight();
@@ -55,20 +80,32 @@ public class VerificationContext {
         }
     }
 
-    public Map<String, Set<String>> getMembershipConstraints() {
+    /**
+     * Getter for the membership constraints.
+     * @return  The membership constraints.
+     */
+    public @NotNull Map<@NotNull String, @NotNull Set<@NotNull String>> getMembershipConstraints() {
         return membershipConstraints;
     }
 
-    public Map<String, Pair<Long, Long>> getRangeConstraints() {
+    /**
+     * Getter for the range constraints.
+     * @return  The range constraints.
+     */
+    public @NotNull Map<@NotNull String, @NotNull Pair<@NotNull Long, @NotNull Long>> getRangeConstraints() {
         return rangeConstraints;
     }
 
-    private VerificationContext(Map<String, Set<String>> membershipConstraints, Map<String, Pair<Long, Long>> rangeConstraints) {
+    private VerificationContext(@NotNull Map<@NotNull String, @NotNull Set<@NotNull String>> membershipConstraints, @NotNull Map<@NotNull String, @NotNull Pair<@NotNull Long, @NotNull Long>> rangeConstraints) {
         this.membershipConstraints = membershipConstraints;
         this.rangeConstraints = rangeConstraints;
     }
 
-    @NotNull protected VerificationContext clone() {
+    /**
+     * Method to clone the current context.
+     * @return  A clone of this context.
+     */
+    @NotNull public VerificationContext clone() {
         return new VerificationContext(new HashMap<>(membershipConstraints), new HashMap<>(rangeConstraints));
     }
 }
