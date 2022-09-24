@@ -83,8 +83,7 @@ public class VerificationContext {
     }
 
     /**
-     * Cf. documentation of: public void addRangeConstraint(@NotNull String rangeUUID, @NotNull Pair<@NotNull Long, @NotNull Long> range),
-     * with range == (lowerBound, upperBound).
+     * Cf. documentation of: public void addRangeConstraint(rangeUUID, range), with range == (lowerBound, upperBound).
      */
     public void addRangeConstraint(@NotNull String rangeUUID, long lowerBound, long upperBound) throws IllegalStateException {
         addRangeConstraint(rangeUUID, Pair.of(lowerBound, upperBound));
