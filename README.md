@@ -2,6 +2,7 @@
 
 [![Project Status: Active](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 [![Release version](https://badgen.net/badge/release/v1.1.3-SNAPSHOT/blue)](https://github.com/pvriel/macaroons4J/releases/tag/1.1.3-SNAPSHOT)
+[![](https://jitpack.io/v/pvriel/macaroons4J.svg)](https://jitpack.io/#pvriel/macaroons4J)
 [![Coverage](https://badgen.net/badge/coverage/95%25/green)](https://badgen.net/badge/coverage/95%25/green)
 
  A Java library for <a href="https://research.google/pubs/pub41892/">Macaroons</a>.
