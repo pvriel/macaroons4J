@@ -1,8 +1,8 @@
-package vrielynckpieterjan.macaroons4j.simple;
+package com.github.pvriel.macaroons4j.simple;
 
 import org.jetbrains.annotations.NotNull;
-import vrielynckpieterjan.macaroons4j.Macaroon;
-import vrielynckpieterjan.macaroons4j.MacaroonTest;
+import com.github.pvriel.macaroons4j.Macaroon;
+import com.github.pvriel.macaroons4j.MacaroonTest;
 
 public class SimpleMacaroonTest extends MacaroonTest {
     @Override

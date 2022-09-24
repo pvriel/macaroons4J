@@ -1,4 +1,4 @@
-package vrielynckpieterjan.macaroons4j;
+package com.github.pvriel.macaroons4j;
 
 import org.jetbrains.annotations.NotNull;
 

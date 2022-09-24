@@ -1,14 +1,13 @@
-package vrielynckpieterjan.macaroons4j;
+package com.github.pvriel.macaroons4j;
 
+import com.github.pvriel.macaroons4j.simple.SimpleMacaroon;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import vrielynckpieterjan.macaroons4j.simple.SimpleMacaroon;
 
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Random;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.*;

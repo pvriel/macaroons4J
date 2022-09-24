@@ -1,7 +1,7 @@
-package vrielynckpieterjan.macaroons4j.simple;
+package com.github.pvriel.macaroons4j.simple;
 
 import org.jetbrains.annotations.NotNull;
-import vrielynckpieterjan.macaroons4j.Macaroon;
+import com.github.pvriel.macaroons4j.Macaroon;
 
 import javax.crypto.*;
 import javax.crypto.spec.IvParameterSpec;
@@ -20,8 +20,13 @@ import java.util.logging.Logger;
 public class SimpleMacaroon extends Macaroon {
 
     private final static @NotNull Logger logger = Logger.getLogger(SimpleMacaroon.class.getName());
-
+    /**
+     * The size of the AES keys.
+     */
     public final static int AES_KEY_SIZE = 128 / 8;
+    /**
+     * The size of the IVs.
+     */
     public final static int IV_SIZE = 128 / 8;
 
     /**

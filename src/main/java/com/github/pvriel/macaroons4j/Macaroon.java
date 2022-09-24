@@ -1,4 +1,4 @@
-package vrielynckpieterjan.macaroons4j;
+package com.github.pvriel.macaroons4j;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
@@ -13,11 +13,27 @@ import java.util.*;
  */
 public abstract class Macaroon implements Serializable {
 
+    /**
+     * A hint to the target location that issued this Macaroon instance.
+     */
     private final @NotNull String hintTargetLocation;
+    /**
+     * The identifier of the Macaroon.
+     */
     private final byte[] macaroonIdentifier;
+    /**
+     * The caveats of this Macaroon.
+     */
     private final @NotNull List<@NotNull Caveat> caveats = new LinkedList<>();
-    // Is set to protected for testing purposes: don't actually change this!
+
+    /**
+     * The signature of the Macaroon.
+     * <br>Is set to protected for testing purposes: don't actually change this!
+     */
     protected @NotNull String macaroonSignature;
+    /**
+     * The discharge Macaroons that are bound to this Macaroon instance.
+     */
     private final @NotNull Map<byte[], @NotNull Set<@NotNull Macaroon>> boundMacaroons = new HashMap<>();
 
     /**

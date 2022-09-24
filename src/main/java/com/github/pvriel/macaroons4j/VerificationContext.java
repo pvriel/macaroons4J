@@ -1,4 +1,4 @@
-package vrielynckpieterjan.macaroons4j;
+package com.github.pvriel.macaroons4j;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
@@ -83,7 +83,18 @@ public class VerificationContext {
     }
 
     /**
-     * Cf. documentation of: public void addRangeConstraint(rangeUUID, range), with range == (lowerBound, upperBound).
+     * Method to add a range constraint to the verification context.
+     * <br>If the method is called for a first time for a specific range UUID, the range is just set.
+     * <br>If the method is called again for a specific range UUID, the range is only updated to the overlap, if the given range overlaps
+     * with the current range. Otherwise, this method throws an {@link IllegalStateException}.
+     * @param   rangeUUID
+     *          The UUID of the range.
+     * @param   lowerBound
+     *          The lower bound of the range.
+     * @param   upperBound
+     *          The upper bound of the range.
+     * @throws  IllegalStateException
+     *          If a range has already been defined for the given UUID, but it does not overlap with the given range of this method invocation.
      */
     public void addRangeConstraint(@NotNull String rangeUUID, long lowerBound, long upperBound) throws IllegalStateException {
         addRangeConstraint(rangeUUID, Pair.of(lowerBound, upperBound));
