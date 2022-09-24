@@ -88,6 +88,8 @@ public abstract class Macaroon implements Serializable {
     /**
      * Method to add a first-party caveat to, and update the signature of the Macaroon instance.
      * After calling this method, the given {@link FirstPartyCaveat} instance is owned by this Macaroon instance.
+     * <br>This also means that a caveat can NOT be added multiple times to the Macaroon.
+     * Instead, each time, a new Macaroon instance should be generated.
      * @param   caveat
      *          The {@link FirstPartyCaveat} to add to the Macaroon instance.
      */
@@ -114,8 +116,14 @@ public abstract class Macaroon implements Serializable {
      * After calling this method, the given discharge Macaroon is owned by this Macaroon instance.
      * @param   dischargeMacaroon
      *          Another Macaroon instance, which will be bound to this Macaroon instance.
+     * @throws  IllegalArgumentException
+     *          If the discharge Macaroons has bound discharge Macaroons; these should be bound to this Macaroon instance instead.
      */
     public void bindMacaroonForRequest(@NotNull Macaroon dischargeMacaroon) {
+        if (!dischargeMacaroon.boundMacaroons.isEmpty()) {
+            throw new IllegalArgumentException("Discharge Macaroon has bound discharge Macaroons; these should be bound to this Macaroon instance instead.");
+        }
+
         dischargeMacaroon.macaroonSignature = bindSignatureForRequest(dischargeMacaroon.macaroonSignature);
 
         if (!boundMacaroons.containsKey(dischargeMacaroon.macaroonIdentifier)) {
@@ -131,113 +139,109 @@ public abstract class Macaroon implements Serializable {
      *          The secret value of the Macaroon, which is required to both generate and verify the signature of the Macaroon instance.
      * @param   context
      *          The {@link VerificationContext}, in which the caveats of this Macaroon instance should hold in order to pass the verification process.
+     *          The verification context is cloned before the verification process takes place.
      * @throws  Exception
      *          If the verification process failed due to:
      *          <br>A) tampering with the signatures and/or caveats,
-     *          <br>B) the presence of discharge Macaroons that are bound to other discharge Macaroons, instead of this Macaroon instance,
-     *          <br>C) providing the wrong secret value of the Macaroon, or
-     *          <br>D) the constraints of the caveats resulting in an impossible context.
+     *          <br>B) providing the wrong secret value of the Macaroon, or
+     *          <br>C) the constraints of the caveats resulting in an impossible context.
      * @return  An equally or more strict verification context compared to the given {@link VerificationContext} instance,
      *          in which the constraints from the caveats of this Macaroon instance also hold.
      *          <br>The caveats are discharged and verified in a depth-first manner / in order.
      *          If there are multiple resulting verification contexts possible, only the first one will be returned.
      */
     public @NotNull VerificationContext verify(@NotNull String secretString, @NotNull VerificationContext context) throws Exception {
-        // 1. Make sure that all discharge macaroons are only bound to this macaroon, and not to other discharge macaroons.
-        for (Set<Macaroon> boundMacaroonsForIdentifier : boundMacaroons.values()) {
-            for (Macaroon boundMacaroon : boundMacaroonsForIdentifier) {
-                if (boundMacaroon.boundMacaroons.size() > 0) {
-                    throw new IllegalStateException("Discharge macaroons should only be bound to the macaroon that is being verified; " +
-                            "however, at least one discharge macaroon is bound to discharge macaroon (%s).".formatted(boundMacaroon));
-                }
-            }
-        }
-        /*
-        2. Find a collection of discharge macaroons that are bound to this macaroon, that are valid in the context and that are sufficient to reconstruct the signature of the macaroon.
-         */
-        String signatureSoFar = calculateMAC(secretString, macaroonIdentifier);
-        List<Caveat> remainingCaveatsToVerifyInContext = new LinkedList<>(caveats);
-        Pair<String, VerificationContext> signatureWithContext = verify(signatureSoFar, remainingCaveatsToVerifyInContext, context);
-        signatureSoFar = signatureWithContext.getLeft();
-        VerificationContext validVerificationContext = signatureWithContext.getRight();
-        if (!signatureSoFar.equals(macaroonSignature)) {
-            throw new IllegalStateException("The signature of the macaroon is not valid: the signature of the macaroon is %s, but the signature that was reconstructed is %s.".formatted(macaroonSignature, signatureSoFar));
-        }
-        return validVerificationContext;
+        String signature = calculateMAC(secretString, macaroonIdentifier);
+        Pair<String, VerificationContext> signatureAndVerificationContext = verify(signature, new ArrayList<>(caveats), context.clone());
+        signature = signatureAndVerificationContext.getLeft();
+        VerificationContext verificationContext = signatureAndVerificationContext.getRight();
+
+        if (!macaroonSignature.equals(signature)) throw new IllegalStateException("Macaroon signature is invalid.");
+        System.gc(); // Lot of resources involved to optimally verify the Macaroon.
+        return verificationContext;
     }
 
-    private @NotNull Pair<@NotNull String, @NotNull VerificationContext> verify(@NotNull String signatureSoFar, @NotNull List<Caveat> remainingCaveatsToVerifyInContext, @NotNull VerificationContext context) throws Exception {
-        while (!remainingCaveatsToVerifyInContext.isEmpty()) {
-            Caveat caveat = remainingCaveatsToVerifyInContext.remove(0);
-            if (caveat instanceof FirstPartyCaveat) {
-                signatureSoFar = verify(signatureSoFar, (FirstPartyCaveat) caveat, context);
-            } else if (caveat instanceof ThirdPartyCaveat) {
-                return verify(signatureSoFar, (ThirdPartyCaveat) caveat, remainingCaveatsToVerifyInContext, context);
+    private @NotNull Pair<@NotNull String, @NotNull VerificationContext> verify(@NotNull String signature,
+            @NotNull List<@NotNull Caveat> remainingCaveats, @NotNull VerificationContext context) throws Exception {
+        while (!remainingCaveats.isEmpty()) {
+            Caveat currentCaveat = remainingCaveats.remove(0);
+            if (currentCaveat instanceof FirstPartyCaveat) signature = verify(signature, (FirstPartyCaveat) currentCaveat, context);
+            else if (currentCaveat instanceof ThirdPartyCaveat) {
+                return verify(signature, remainingCaveats, (ThirdPartyCaveat) currentCaveat, context);
             } else {
-                throw new IllegalStateException("Found a caveat (%s) that is neither a first- or third-party caveat.".formatted(caveat)); // This should never happen.
+                throw new IllegalStateException("Found a caveat (%s) that is neither a first-party nor a third-party caveat.".formatted(currentCaveat));
+            }
+        }
+        return Pair.of(signature, context);
+    }
+
+    private @NotNull String verify(@NotNull String signature, @NotNull FirstPartyCaveat caveat, @NotNull VerificationContext context) throws Exception {
+        caveat.verify(this, context);
+        return calculateMAC(signature, caveat.getCaveatIdentifier());
+    }
+
+    private @NotNull Pair<@NotNull String, @NotNull VerificationContext> verify
+            (@NotNull String signature, @NotNull List<@NotNull Caveat> remainingCaveats,
+             @NotNull ThirdPartyCaveat caveat, @NotNull VerificationContext context) throws Exception {
+        /*
+            1. Generate the new signature for the Macaroon (we need this anyway).
+                Also, generate the initial signature of the caveat (probably need this).
+         */
+        byte[] vldCldConcatenation = calculateVldCldConcatenationThirdPartyCaveat(caveat);
+        String caveatRootKey = decrypt(signature, caveat.getCaveatRootOrVerificationKey());
+        String initialSignatureDischargeMacaroon = calculateMAC(caveatRootKey, caveat.getCaveatIdentifier());
+        signature = calculateMAC(signature, vldCldConcatenation);
+        /*
+            2. Check if we already verified a discharge Macaroon in this context that can be used to discharge this Macaroon instance.
+                If that's the case, no additional work is required to verify this caveat; go to the next one.
+         */
+        if (context.caveatIdentifierIsAlreadyVerified(caveat.getCaveatIdentifier())) return verify(signature, remainingCaveats, context);
+        //  3. Try to find a discharge Macaroon for the current caveat; take into account the impossible discharge Macaroons for better performance.
+        Set<Macaroon> possibleDischargeMacaroons = boundMacaroons.getOrDefault(caveat.getCaveatIdentifier(), Set.of());
+        possibleDischargeMacaroons = context.filterPossibleDischargeMacaroons(possibleDischargeMacaroons); // Filter the already invalid ones.
+
+        for (Macaroon possibleDischargeMacaroon : possibleDischargeMacaroons) {
+            try {
+                /*
+                Make a copy of the verification context. If the current discharge Macaroon can not be used for discharging
+                the current caveat, this allows us to revert the additional restrictions it may have introduced within the
+                verification context, to try to discharge the current caveat with another discharge Macaroon.
+
+                However, if there's only one possible discharge Macaroon, just use the current verification context.
+                In that case, we will never need to revert anyway.
+                 */
+                VerificationContext contextForDischargeMacaroon = (possibleDischargeMacaroons.size() == 1)? context : context.clone();
+                /*
+                Support for reflexive discharge Macaroons: already assume the discharge Macaroon holds.
+                We check its caveats anyway.
+                 */
+                contextForDischargeMacaroon.addAlreadyVerifiedCaveatIdentifier(caveat.getCaveatIdentifier());
+                Pair<String, VerificationContext> resultsVerificationDischargeMacaroon =
+                        verify(initialSignatureDischargeMacaroon, new ArrayList<>(possibleDischargeMacaroon.caveats), contextForDischargeMacaroon);
+                String currentSignatureDischargeMacaroon = resultsVerificationDischargeMacaroon.getLeft();
+                currentSignatureDischargeMacaroon = bindSignatureForRequest(currentSignatureDischargeMacaroon);
+                if (!possibleDischargeMacaroon.macaroonSignature.equals(currentSignatureDischargeMacaroon))
+                    throw new IllegalStateException("Signature of discharge Macaroon (%s) is invalid.".formatted(possibleDischargeMacaroon));
+
+                contextForDischargeMacaroon = resultsVerificationDischargeMacaroon.getRight();
+                return verify(signature, remainingCaveats, contextForDischargeMacaroon);
+            } catch (Exception ignored) {
+                /*
+                With the current restrictions holding in the verification context, the current discharge Macaroon can not be used for verification.
+                That also means that we can not use the current discharge Macaroon in the future, in contexts that are (potentially) even more restricted.
+                 */
+                context.addInvalidDischargeMacaroon(possibleDischargeMacaroon);
             }
         }
 
-        return Pair.of(signatureSoFar, context);
-    }
-
-    private @NotNull String verify(@NotNull String signatureSoFar, @NotNull FirstPartyCaveat caveat, @NotNull VerificationContext context) throws IllegalStateException {
-        caveat.verify(this, context);
-        return calculateMAC(signatureSoFar, caveat.getCaveatIdentifier());
-    }
-
-    private @NotNull Pair<@NotNull String, @NotNull VerificationContext> verify(@NotNull String signatureSoFar, @NotNull ThirdPartyCaveat caveat,
-                                @NotNull List<Caveat> remainingCaveatsToVerifyInContext,
-                                @NotNull VerificationContext context) throws Exception {
-        // 1. Extract the caveat root String from the verification String, and calculate the initial signature for the discharge macaroon.
-        String caveatRootString = decrypt(signatureSoFar, caveat.getCaveatRootOrVerificationKey());
-        String signatureSoFarForDischargeMacaroon = calculateMAC(caveatRootString, caveat.getCaveatIdentifier());
-
-        /*
-            2. Check for a bound discharge macaroon that can be used to discharge the current third-party caveat, and make sure the signature of that discharge macaroon is correct.
-            At least one discharge macaroon should work in order for this macaroon to be able to get verified.
-
-            Since the verification process for a third-party caveat may alter the VerificationContext, each possible discharge macaroon should work with its own VerificationContext.
-            However, if there's only one possible discharge macaroon for the caveat, we can just pass that one.
-         */
-        Set<Macaroon> correspondingDischargeMacaroons = boundMacaroons.get(caveat.getCaveatIdentifier());
-        if (correspondingDischargeMacaroons == null || correspondingDischargeMacaroons.isEmpty()) {
-            throw new IllegalStateException("No bound discharge macaroons found for third-party caveat (%s).".formatted(caveat));
-        }
-        for (Macaroon possibleDischargeMacaroon: correspondingDischargeMacaroons) {
-            try {
-                VerificationContext contextForVerificationDischargeMacaroon = (correspondingDischargeMacaroons.size() == 1)? context : context.clone();
-                Pair<String, VerificationContext> resultingDischargeMacaroonSignatureAndVerificationContext =
-                        verify(signatureSoFarForDischargeMacaroon, new LinkedList<>(possibleDischargeMacaroon.caveats), contextForVerificationDischargeMacaroon);
-                String calculatedSignatureDischargeMacaroon = bindSignatureForRequest(resultingDischargeMacaroonSignatureAndVerificationContext.getLeft());
-                if (possibleDischargeMacaroon.macaroonSignature.equals(calculatedSignatureDischargeMacaroon)) {
-                    /*
-                        So far, the third-party caveat is diffused, but the context may become invalid by checking another caveat.
-                        If that will be ever the case later on, the exception will be caught in this try-catch block, and another
-                        discharge macaroon will be used.
-                     */
-                    signatureSoFar = calculateMAC(signatureSoFar, calculateVldCldConcatenationThirdPartyCaveat(caveat));
-                    return verify(signatureSoFar, remainingCaveatsToVerifyInContext, resultingDischargeMacaroonSignatureAndVerificationContext.getRight());
-                }
-            } catch (Exception ignored) {}
-        }
-
-        throw new IllegalStateException(("%d corresponding discharge macaroon(s) found for third-party caveat (%s), " +
-                "but none could be used for the diffuse process.").formatted(correspondingDischargeMacaroons.size(), caveat));
+        throw new IllegalStateException("No valid discharge Macaroon found for caveat (%s).".formatted(caveat));
     }
 
     private byte[] calculateVldCldConcatenationThirdPartyCaveat(@NotNull ThirdPartyCaveat caveat) {
+        // No cache mechanism here; I don't think it would improve the performance of this method?
         byte[] toMAC = new byte[caveat.getCaveatRootOrVerificationKey().length + caveat.getCaveatIdentifier().length];
         System.arraycopy(caveat.getCaveatRootOrVerificationKey(), 0, toMAC, 0, caveat.getCaveatRootOrVerificationKey().length);
         System.arraycopy(caveat.getCaveatIdentifier(), 0, toMAC, caveat.getCaveatRootOrVerificationKey().length, caveat.getCaveatIdentifier().length);
         return toMAC;
-    }
-
-    /**
-     * Getter for the bound discharge Macaroons.
-     * @return  The bound discharge Macaroons.
-     */
-    public @NotNull Map<byte[], @NotNull Set<@NotNull Macaroon>> getBoundMacaroons() {
-        return boundMacaroons;
     }
 }

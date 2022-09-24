@@ -3,10 +3,8 @@ package vrielynckpieterjan.macaroons4j;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * Class representing contexts in which {@link Macaroon} instances can be verified.
@@ -15,12 +13,14 @@ public class VerificationContext {
 
     private final @NotNull Map<@NotNull String, @NotNull Set<@NotNull String>> membershipConstraints;
     private final @NotNull Map<@NotNull String, @NotNull Pair<@NotNull Long, @NotNull Long>> rangeConstraints;
+    private final @NotNull Set<byte[]> alreadyVerifiedCaveatIdentifiers;
+    private final @NotNull Set<@NotNull Macaroon> invalidDischargeMacaroons;
 
     /**
      * Default constructor for the {@link VerificationContext} class.
      */
     public VerificationContext() {
-        this(new HashMap<>(), new HashMap<>());
+        this(new HashMap<>(), new HashMap<>(), new HashSet<>(), new HashSet<>());
     }
 
     /**
@@ -80,6 +80,22 @@ public class VerificationContext {
         }
     }
 
+    boolean caveatIdentifierIsAlreadyVerified(byte[] identifier) {
+        return alreadyVerifiedCaveatIdentifiers.contains(identifier);
+    }
+
+    void addAlreadyVerifiedCaveatIdentifier(byte[] identifier) {
+        alreadyVerifiedCaveatIdentifiers.add(identifier);
+    }
+
+    void addInvalidDischargeMacaroon(@NotNull Macaroon macaroon) {
+        invalidDischargeMacaroons.add(macaroon);
+    }
+
+    @NotNull Set<@NotNull Macaroon> filterPossibleDischargeMacaroons(@NotNull Set<@NotNull Macaroon> possibleDischargeMacaroons) {
+        return possibleDischargeMacaroons.stream().filter(macaroon -> !invalidDischargeMacaroons.contains(macaroon)).collect(Collectors.toSet());
+    }
+
     /**
      * Getter for the membership constraints.
      * @return  The membership constraints.
@@ -96,9 +112,14 @@ public class VerificationContext {
         return rangeConstraints;
     }
 
-    private VerificationContext(@NotNull Map<@NotNull String, @NotNull Set<@NotNull String>> membershipConstraints, @NotNull Map<@NotNull String, @NotNull Pair<@NotNull Long, @NotNull Long>> rangeConstraints) {
+    private VerificationContext(@NotNull Map<@NotNull String, @NotNull Set<@NotNull String>> membershipConstraints,
+                                @NotNull Map<@NotNull String, @NotNull Pair<@NotNull Long, @NotNull Long>> rangeConstraints,
+                                @NotNull Set<byte[]> alreadyVerifiedCaveatIdentifiers,
+                                @NotNull Set<@NotNull Macaroon> invalidDischargeMacaroons) {
         this.membershipConstraints = membershipConstraints;
         this.rangeConstraints = rangeConstraints;
+        this.alreadyVerifiedCaveatIdentifiers = alreadyVerifiedCaveatIdentifiers;
+        this.invalidDischargeMacaroons = invalidDischargeMacaroons;
     }
 
     /**
@@ -106,6 +127,7 @@ public class VerificationContext {
      * @return  A clone of this context.
      */
     @NotNull public VerificationContext clone() {
-        return new VerificationContext(new HashMap<>(membershipConstraints), new HashMap<>(rangeConstraints));
+        return new VerificationContext(new HashMap<>(membershipConstraints), new HashMap<>(rangeConstraints),
+                new HashSet<>(alreadyVerifiedCaveatIdentifiers), new HashSet<>(invalidDischargeMacaroons));
     }
 }

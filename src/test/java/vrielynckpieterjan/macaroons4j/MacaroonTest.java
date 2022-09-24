@@ -8,6 +8,7 @@ import vrielynckpieterjan.macaroons4j.simple.SimpleMacaroon;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Random;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -131,7 +132,7 @@ public abstract class MacaroonTest {
     }
 
     @Test
-    @DisplayName("Discharge Macaroons can not be bound to other discharge Macaroons during the verification process.")
+    @DisplayName("Discharge Macaroons can not be bound to other discharge Macaroons.")
     public void testEight() throws Exception {
         String hintTargetLocation = generateRandomStringOfLength(256);
         byte[] macaroonIdentifier = generateRandomStringOfLength(256).getBytes(StandardCharsets.UTF_8);
@@ -141,9 +142,7 @@ public abstract class MacaroonTest {
         Macaroon macaroonThree = generateRandomMacaroon();
 
         macaroonTwo.bindMacaroonForRequest(macaroonThree);
-        macaroonOne.bindMacaroonForRequest(macaroonTwo);
-
-        assertThrows(IllegalStateException.class, () -> macaroonOne.verify(macaroonSecret, new VerificationContext()));
+        assertThrows(IllegalArgumentException.class, () -> macaroonOne.bindMacaroonForRequest(macaroonTwo));
     }
 
     @Test
@@ -207,9 +206,57 @@ public abstract class MacaroonTest {
         assertFalse(alteringFirstPartyCaveatIsValid.get());
     }
 
-    // D. If there is a corresponding discharge macaroon and its caveats hold in the context, the verification process should succeed.
+    @Test
+    @DisplayName("Already verified discharge Macaroons should not be verified multiple times.")
+    void testEleven() throws Exception {
+        String hintTargetLocation = generateRandomStringOfLength(256);
+        byte[] macaroonIdentifier = generateRandomStringOfLength(256).getBytes(StandardCharsets.UTF_8);
+        String macaroonSecret = generateRandomStringOfLength(256);
+        Macaroon macaroon = new SimpleMacaroon(macaroonSecret, macaroonIdentifier, hintTargetLocation);
 
-    // E. If there are multiple corresponding discharge macaroons, the verification process should succeed if the caveats of at least one discharge macaroon hold.
+        String thirdPartyCaveatSecretKey = generateRandomStringOfLength(256);
+        byte[] thirdPartyCaveatIdentifier = generateRandomStringOfLength(256).getBytes(StandardCharsets.UTF_8);
+        ThirdPartyCaveat thirdPartyCaveatOne = new MockThirdPartyCaveat(thirdPartyCaveatSecretKey, thirdPartyCaveatIdentifier);
+        ThirdPartyCaveat thirdPartyCaveatTwo = new MockThirdPartyCaveat(thirdPartyCaveatSecretKey, thirdPartyCaveatIdentifier);
+        macaroon.addCaveat(thirdPartyCaveatOne);
+        macaroon.addCaveat(thirdPartyCaveatTwo);
+
+        Macaroon dischargeMacaroonOne = new SimpleMacaroon(thirdPartyCaveatSecretKey, thirdPartyCaveatIdentifier, "");
+        MockFirstPartyCaveat dischargeMacaroonFirstPartyCaveat = new MockFirstPartyCaveat(generateRandomStringOfLength(256).getBytes(StandardCharsets.UTF_8), true);
+        dischargeMacaroonOne.addCaveat(dischargeMacaroonFirstPartyCaveat);
+        macaroon.bindMacaroonForRequest(dischargeMacaroonOne);
+
+        macaroon.verify(macaroonSecret, new VerificationContext());
+        assertEquals(1, dischargeMacaroonFirstPartyCaveat.amountOfVerifications);
+    }
+
+    @Test
+    @DisplayName("Invalid discharge Macaroons should not be verified multiple times.")
+    void testTwelve() throws Exception {
+        String macaroonSecret = generateRandomStringOfLength(256);
+        Macaroon macaroon = new SimpleMacaroon(macaroonSecret, generateRandomStringOfLength(256).getBytes(StandardCharsets.UTF_8), generateRandomStringOfLength(256));
+
+        String thirdPartyCaveatSecretKey = generateRandomStringOfLength(256);
+        byte[] thirdPartyCaveatIdentifier = generateRandomStringOfLength(256).getBytes(StandardCharsets.UTF_8);
+        ThirdPartyCaveat thirdPartyCaveatOne = new MockThirdPartyCaveat(thirdPartyCaveatSecretKey, thirdPartyCaveatIdentifier);
+        ThirdPartyCaveat thirdPartyCaveatTwo = new MockThirdPartyCaveat(thirdPartyCaveatSecretKey, thirdPartyCaveatIdentifier);
+        macaroon.addCaveat(thirdPartyCaveatOne);
+        macaroon.addCaveat(thirdPartyCaveatTwo);
+
+        Macaroon invalidDischargeMacaroon = new SimpleMacaroon(thirdPartyCaveatSecretKey, thirdPartyCaveatIdentifier, "");
+        Macaroon validDischargeMacaroon = new SimpleMacaroon(thirdPartyCaveatSecretKey, thirdPartyCaveatIdentifier, "");
+        MockFirstPartyCaveat invalidDischargeMacaroonFirstPartyCaveat = new MockFirstPartyCaveat(generateRandomStringOfLength(256).getBytes(StandardCharsets.UTF_8), false);
+        MockFirstPartyCaveat validDischargeMacaroonFirstPartyCaveat = new MockFirstPartyCaveat(generateRandomStringOfLength(256).getBytes(StandardCharsets.UTF_8), true);
+        invalidDischargeMacaroon.addCaveat(invalidDischargeMacaroonFirstPartyCaveat);
+        validDischargeMacaroon.addCaveat(validDischargeMacaroonFirstPartyCaveat);
+        validDischargeMacaroon.addCaveat(new MockThirdPartyCaveat(thirdPartyCaveatSecretKey, thirdPartyCaveatIdentifier));
+        macaroon.bindMacaroonForRequest(invalidDischargeMacaroon);
+        macaroon.bindMacaroonForRequest(validDischargeMacaroon);
+
+        macaroon.verify(macaroonSecret, new VerificationContext());
+        assertTrue(1 >= invalidDischargeMacaroonFirstPartyCaveat.amountOfVerifications);
+        assertEquals(1, validDischargeMacaroonFirstPartyCaveat.amountOfVerifications);
+    }
 
     private static String generateRandomStringOfLength(int length) {
         StringBuilder stringBuilder = new StringBuilder(length);
@@ -221,6 +268,7 @@ public abstract class MacaroonTest {
     private static class MockFirstPartyCaveat extends FirstPartyCaveat {
 
         private final boolean shouldVerify;
+        int amountOfVerifications = 0;
 
         MockFirstPartyCaveat(byte[] caveatIdentifier, boolean shouldVerify) {
             super(caveatIdentifier);
@@ -229,6 +277,7 @@ public abstract class MacaroonTest {
 
         @Override
         protected void verify(@NotNull Macaroon macaroon, @NotNull VerificationContext context) throws IllegalStateException {
+            amountOfVerifications ++;
             if (!shouldVerify) throw new IllegalStateException("shouldVerify of caveat (%s) is set to false.".formatted(this));
         }
     }

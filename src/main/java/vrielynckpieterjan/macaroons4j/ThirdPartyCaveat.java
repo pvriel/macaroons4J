@@ -7,7 +7,7 @@ import java.nio.charset.StandardCharsets;
 /**
  * Abstract class representing third-party caveats.
  */
-public abstract class ThirdPartyCaveat extends Caveat {
+public class ThirdPartyCaveat extends Caveat {
 
     private final @NotNull String location;
     private byte[] caveatRootOrVerificationKey;
