@@ -33,7 +33,7 @@ public class VerificationContext {
      * @param   shouldContainElements
      *          The elements that should be included in the membership.
      */
-    void addMembershipConstraint(@NotNull String membershipUUID, @NotNull Set<@NotNull String> shouldContainElements) {
+    public void addMembershipConstraint(@NotNull String membershipUUID, @NotNull Set<@NotNull String> shouldContainElements) throws IllegalStateException {
         if (!membershipConstraints.containsKey(membershipUUID)) {
             membershipConstraints.put(membershipUUID, shouldContainElements);
             return;
@@ -58,8 +58,10 @@ public class VerificationContext {
      *          The UUID of the range.
      * @param   range
      *          The new range.
+     * @throws  IllegalStateException
+     *          If a range has already been defined for the given UUID, but it does not overlap with the given range of this method invocation.
      */
-    void addRangeConstraint(@NotNull String rangeUUID, @NotNull Pair<Long, Long> range) {
+    public void addRangeConstraint(@NotNull String rangeUUID, @NotNull Pair<@NotNull Long, @NotNull Long> range) throws IllegalStateException {
         long startNewRange = range.getLeft();
         long endNewRange = range.getRight();
         if (startNewRange > endNewRange) throw new IllegalArgumentException("The start of the range is at a later moment than the end of the range.");
@@ -78,6 +80,14 @@ public class VerificationContext {
         } else {
             rangeConstraints.put(rangeUUID, range);
         }
+    }
+
+    /**
+     * Cf. documentation of: public void addRangeConstraint(@NotNull String rangeUUID, @NotNull Pair<@NotNull Long, @NotNull Long> range),
+     * with range == (lowerBound, upperBound).
+     */
+    public void addRangeConstraint(@NotNull String rangeUUID, long lowerBound, long upperBound) throws IllegalStateException {
+        addRangeConstraint(rangeUUID, Pair.of(lowerBound, upperBound));
     }
 
     boolean caveatIdentifierIsAlreadyVerified(byte[] identifier) {
