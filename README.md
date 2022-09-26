@@ -1,4 +1,4 @@
-# macaroons4J
+# macaroons4J &nbsp; ![Java](https://img.shields.io/badge/java-%23ED8B00.svg?style=for-the-badge&logo=java&logoColor=white)
 
 [![Project Status: Active](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 [![Release version](https://badgen.net/badge/release/v1.1.3-SNAPSHOT/blue)](https://github.com/pvriel/macaroons4J/releases/tag/1.1.3-SNAPSHOT)
