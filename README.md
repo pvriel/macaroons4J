@@ -1,9 +1,7 @@
 # macaroons4J &nbsp; ![Java](https://img.shields.io/badge/java-%23ED8B00.svg?style=for-the-badge&logo=java&logoColor=white)
 
 [![Project Status: Active](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
-[![Release version](https://badgen.net/badge/release/v1.1.3-SNAPSHOT/blue)](https://github.com/pvriel/macaroons4J/releases/tag/1.1.3-SNAPSHOT)
-[![](https://jitpack.io/v/pvriel/macaroons4J.svg)](https://jitpack.io/#pvriel/macaroons4J)
-[![Coverage](https://badgen.net/badge/coverage/95%25/green)](https://badgen.net/badge/coverage/95%25/green)
+[![Coverage](https://badgen.net/badge/coverage/86%25/green)](https://badgen.net/badge/coverage/86%25/green)
 
  A Java library for <a href="https://research.google/pubs/pub41892/">Macaroons</a>.
 <br>The aim of this library is to provide an easy-to-use, yet versatile (e.g., support for structural caveats) library for developers.
@@ -11,38 +9,8 @@
 ***
 
 ## How to add this dependency to your project
-Replace `VERSION` with a tag from the releases.
-### Maven
-```xml
-<repositories>
-    <repository>
-        <id>jitpack.io</id>
-        <url>https://jitpack.io</url>
-    </repository>
-</repositories>
-```
-Also, add the following dependency:
-```xml
-<dependency>
-    <groupId>com.github.pvriel</groupId>
-    <artifactId>macaroons4J</artifactId>
-    <version>VERSION</version>
-</dependency>
-```
-### Gradle
-```groovy
-allprojects {
-    repositories {
-        maven { url 'https://jitpack.io' }
-    }
-}
-```
-Also, add the following dependency:
-```groovy
-dependencies {
-    implementation 'com.github.pvriel:macaroons4J:VERSION'
-}
-```
+
+We now use <a href="https://github.com/pvriel/macaroons4J/packages/">GitHub packages</a> instead of JitPack.
 
 ***
 

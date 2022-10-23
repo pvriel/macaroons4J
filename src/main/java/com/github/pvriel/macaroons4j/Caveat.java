@@ -1,14 +1,18 @@
 package com.github.pvriel.macaroons4j;
 
 import java.io.Serializable;
+import java.util.Arrays;
 
 /**
  * Abstract class, representing caveats in general.
  * API Note: besides the {@link FirstPartyCaveat} and {@link ThirdPartyCaveat} classes, this class should not have any other child classes.
  */
-abstract class Caveat implements Serializable {
+public abstract class Caveat implements Serializable {
 
-    private final byte[] caveatIdentifier;
+    /**
+     * The identifier of the caveat.
+     */
+    public final byte[] caveatIdentifier;
 
     /**
      * Constructor of the {@link Caveat} class.
@@ -19,7 +23,16 @@ abstract class Caveat implements Serializable {
         this.caveatIdentifier = caveatIdentifier;
     }
 
-    byte[] getCaveatIdentifier() {
-        return caveatIdentifier;
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Caveat caveat = (Caveat) o;
+        return Arrays.equals(caveatIdentifier, caveat.caveatIdentifier);
+    }
+
+    @Override
+    public int hashCode() {
+        return Arrays.hashCode(caveatIdentifier);
     }
 }

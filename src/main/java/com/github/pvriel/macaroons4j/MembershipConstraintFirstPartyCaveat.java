@@ -42,7 +42,7 @@ public class MembershipConstraintFirstPartyCaveat extends FirstPartyCaveat {
      *          stored as part of the verification context.
      */
     @Override
-    protected void verify(@NotNull Macaroon macaroon, @NotNull VerificationContext context) throws IllegalStateException {
+    public void verify(@NotNull Macaroon macaroon, @NotNull VerificationContext context) throws IllegalStateException {
         Pair<String, Set<String>> UUIDAndRequiredMembers = extractMembershipUUIDAndRequiredMembersFromCaveatIdentifier();
         String membershipUUID = UUIDAndRequiredMembers.getLeft();
         Set<String> requiredMembers = UUIDAndRequiredMembers.getRight();
@@ -54,8 +54,12 @@ public class MembershipConstraintFirstPartyCaveat extends FirstPartyCaveat {
         return (membershipUUID + " ∈ " + requiredMembers).getBytes(StandardCharsets.UTF_8);
     }
 
-    private @NotNull Pair<@NotNull String, @NotNull Set<@NotNull String>> extractMembershipUUIDAndRequiredMembersFromCaveatIdentifier() {
-        String caveatIdentifierAsString = new String(getCaveatIdentifier(), StandardCharsets.UTF_8);
+    /**
+     * Method to extract the membership UUID and the required members from the caveat identifier.
+     * @return A pair, where the left element is the membership UUID and the right element is the set of required members.
+     */
+    public @NotNull Pair<@NotNull String, @NotNull Set<@NotNull String>> extractMembershipUUIDAndRequiredMembersFromCaveatIdentifier() {
+        String caveatIdentifierAsString = new String(caveatIdentifier, StandardCharsets.UTF_8);
 
         Matcher matcher = regexPattern.matcher(caveatIdentifierAsString);
         if (!matcher.matches()) throw new IllegalStateException("The caveat identifier '" + caveatIdentifierAsString + "' does not match the expected format.");

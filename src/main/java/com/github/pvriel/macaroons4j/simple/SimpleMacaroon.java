@@ -1,15 +1,17 @@
 package com.github.pvriel.macaroons4j.simple;
 
+import com.github.pvriel.macaroons4j.Caveat;
 import org.jetbrains.annotations.NotNull;
 import com.github.pvriel.macaroons4j.Macaroon;
 
 import javax.crypto.*;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.security.spec.InvalidKeySpecException;
-import java.util.Base64;
+import java.util.*;
 import java.util.logging.Logger;
 
 /**
@@ -42,6 +44,29 @@ public class SimpleMacaroon extends Macaroon {
         super(secretString, macaroonIdentifier, hintTargetLocation);
     }
 
+    /**
+     * Constructor for the {@link SimpleMacaroon} class.
+     * @param   hintTargetLocation
+     *          A hint to the target location (which typically issues the Macaroon instance).
+     * @param   macaroonIdentifier
+     *          The public identifier of the Macaroon instance.
+     * @param   caveats
+     *          A set of caveats, which are attached to the Macaroon instance.
+     * @param   macaroonSignature
+     *          The signature of the Macaroon instance.
+     * @param   boundMacaroons
+     *          A set of bound Macaroons, which are attached to the Macaroon instance.
+     */
+    private SimpleMacaroon(@NotNull String hintTargetLocation, byte[] macaroonIdentifier, @NotNull List<@NotNull Caveat> caveats,
+                           @NotNull String macaroonSignature, @NotNull Map<ByteBuffer, @NotNull Set<@NotNull Macaroon>> boundMacaroons) {
+        super(hintTargetLocation, macaroonIdentifier, caveats, macaroonSignature, boundMacaroons);
+    }
+
+    @Override
+    public @NotNull Macaroon clone() {
+        return new SimpleMacaroon(hintTargetLocation, macaroonIdentifier, new LinkedList<>(caveats), macaroonSignature, new HashMap<>(boundMacaroons));
+    }
+
     @Override
     protected @NotNull String calculateMAC(@NotNull String key, byte[] element) {
         try {
@@ -57,13 +82,13 @@ public class SimpleMacaroon extends Macaroon {
     }
 
     @Override
-    protected byte[] encrypt(@NotNull String key, byte[] original) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException {
+    public byte[] encrypt(@NotNull String key, byte[] original) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException {
         Cipher cipher = initCipher(Cipher.ENCRYPT_MODE, key);
         return cipher.doFinal(original);
     }
 
     @Override
-    protected @NotNull String decrypt(@NotNull String key, byte[] encrypted) throws InvalidKeySpecException, NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException {
+    public @NotNull String decrypt(@NotNull String key, byte[] encrypted) throws InvalidKeySpecException, NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, InvalidAlgorithmParameterException {
         Cipher cipher = initCipher(Cipher.DECRYPT_MODE, key);
         byte[] result = cipher.doFinal(encrypted);
         return new String(result, StandardCharsets.UTF_8);

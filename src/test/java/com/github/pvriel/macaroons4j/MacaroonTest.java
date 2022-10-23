@@ -187,7 +187,7 @@ public abstract class MacaroonTest {
             }
 
             @Override
-            protected void verify(@NotNull Macaroon macaroon, @NotNull VerificationContext context) throws IllegalStateException {
+            public void verify(@NotNull Macaroon macaroon, @NotNull VerificationContext context) throws IllegalStateException {
                 boolean myValue = alteringFirstPartyCaveatIsValid.get();
                 alteringFirstPartyCaveatIsValid.set(!myValue);
 
@@ -275,7 +275,7 @@ public abstract class MacaroonTest {
         }
 
         @Override
-        protected void verify(@NotNull Macaroon macaroon, @NotNull VerificationContext context) throws IllegalStateException {
+        public void verify(@NotNull Macaroon macaroon, @NotNull VerificationContext context) throws IllegalStateException {
             amountOfVerifications ++;
             if (!shouldVerify) throw new IllegalStateException("shouldVerify of caveat (%s) is set to false.".formatted(this));
         }

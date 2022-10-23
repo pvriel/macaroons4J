@@ -4,6 +4,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.Serializable;
+import java.nio.ByteBuffer;
 import java.util.*;
 
 /**
@@ -16,25 +17,25 @@ public abstract class Macaroon implements Serializable {
     /**
      * A hint to the target location that issued this Macaroon instance.
      */
-    private final @NotNull String hintTargetLocation;
+    public final @NotNull String hintTargetLocation;
     /**
      * The identifier of the Macaroon.
      */
-    private final byte[] macaroonIdentifier;
+    public final byte[] macaroonIdentifier;
     /**
      * The caveats of this Macaroon.
      */
-    private final @NotNull List<@NotNull Caveat> caveats = new LinkedList<>();
+    public final @NotNull List<@NotNull Caveat> caveats;
 
     /**
      * The signature of the Macaroon.
      * <br>Is set to protected for testing purposes: don't actually change this!
      */
-    protected @NotNull String macaroonSignature;
+    public @NotNull String macaroonSignature;
     /**
      * The discharge Macaroons that are bound to this Macaroon instance.
      */
-    private final @NotNull Map<byte[], @NotNull Set<@NotNull Macaroon>> boundMacaroons = new HashMap<>();
+    public final @NotNull Map<ByteBuffer, @NotNull Set<@NotNull Macaroon>> boundMacaroons;
 
     /**
      * Method to generate a MAC value.
@@ -58,7 +59,7 @@ public abstract class Macaroon implements Serializable {
      * @throws  Exception
      *          If the element can not be encrypted with the given key.
      */
-    protected abstract byte[] encrypt(@NotNull String key, byte[] original) throws Exception;
+    public abstract byte[] encrypt(@NotNull String key, byte[] original) throws Exception;
 
     /**
      * Method to symmetrically decrypt an encrypted element.
@@ -71,7 +72,7 @@ public abstract class Macaroon implements Serializable {
      * @throws  Exception
      *          If the element can not be decrypted using the given key.
      */
-    protected abstract @NotNull String decrypt(@NotNull String key, byte[] encrypted) throws Exception;
+    public abstract @NotNull String decrypt(@NotNull String key, byte[] encrypted) throws Exception;
 
     /**
      * Method to bind the signature of a discharge Macaroon to the current Macaroon instance.
@@ -91,9 +92,30 @@ public abstract class Macaroon implements Serializable {
      *          A hint to the target location (which typically issues the Macaroon instance).
      */
     public Macaroon(@NotNull String secretString, byte[] macaroonIdentifier, @NotNull String hintTargetLocation) {
+        this(hintTargetLocation, macaroonIdentifier, new LinkedList<>(), "", new HashMap<>()); // "": temporary value
+        this.macaroonSignature = calculateMAC(secretString, macaroonIdentifier);
+    }
+
+    /**
+     * Constructor for the {@link Macaroon} class.
+     * @param   hintTargetLocation
+     *          A hint to the target location (which typically issues the Macaroon instance).
+     * @param   macaroonIdentifier
+     *          The public identifier of the Macaroon instance.
+     * @param   caveats
+     *          The caveats of the Macaroon instance.
+     * @param   macaroonSignature
+     *          The signature of the Macaroon instance.
+     * @param   boundMacaroons
+     *          The discharge Macaroons that are bound to this Macaroon instance.
+     */
+    protected Macaroon(@NotNull String hintTargetLocation, byte[] macaroonIdentifier, @NotNull List<@NotNull Caveat> caveats,
+                     @NotNull String macaroonSignature, @NotNull Map<ByteBuffer, @NotNull Set<@NotNull Macaroon>> boundMacaroons) {
         this.hintTargetLocation = hintTargetLocation;
         this.macaroonIdentifier = macaroonIdentifier;
-        this.macaroonSignature = calculateMAC(secretString, macaroonIdentifier);
+        this.caveats = caveats;
+        this.macaroonSignature = macaroonSignature;
+        this.boundMacaroons = boundMacaroons;
     }
 
     private void addCaveat(@NotNull Caveat caveat, byte[] toMac) {
@@ -110,7 +132,7 @@ public abstract class Macaroon implements Serializable {
      *          The {@link FirstPartyCaveat} to add to the Macaroon instance.
      */
     public void addCaveat(@NotNull FirstPartyCaveat caveat) {
-        addCaveat(caveat, caveat.getCaveatIdentifier());
+        addCaveat(caveat, caveat.caveatIdentifier);
     }
 
     /**
@@ -142,10 +164,10 @@ public abstract class Macaroon implements Serializable {
 
         dischargeMacaroon.macaroonSignature = bindSignatureForRequest(dischargeMacaroon.macaroonSignature);
 
-        if (!boundMacaroons.containsKey(dischargeMacaroon.macaroonIdentifier)) {
-            boundMacaroons.put(dischargeMacaroon.macaroonIdentifier, new HashSet<>());
+        if (!boundMacaroons.containsKey(ByteBuffer.wrap(dischargeMacaroon.macaroonIdentifier))) {
+            boundMacaroons.put(ByteBuffer.wrap(dischargeMacaroon.macaroonIdentifier), new HashSet<>());
         }
-        Set<Macaroon> boundMacaroonsForIdentifierDischargeMacaroon = boundMacaroons.get(dischargeMacaroon.macaroonIdentifier);
+        Set<Macaroon> boundMacaroonsForIdentifierDischargeMacaroon = boundMacaroons.get(ByteBuffer.wrap(dischargeMacaroon.macaroonIdentifier));
         boundMacaroonsForIdentifierDischargeMacaroon.add(dischargeMacaroon);
     }
 
@@ -193,7 +215,7 @@ public abstract class Macaroon implements Serializable {
 
     private @NotNull String verify(@NotNull String signature, @NotNull FirstPartyCaveat caveat, @NotNull VerificationContext context) throws Exception {
         caveat.verify(this, context);
-        return calculateMAC(signature, caveat.getCaveatIdentifier());
+        return calculateMAC(signature, caveat.caveatIdentifier);
     }
 
     private @NotNull Pair<@NotNull String, @NotNull VerificationContext> verify
@@ -205,15 +227,15 @@ public abstract class Macaroon implements Serializable {
          */
         byte[] vldCldConcatenation = calculateVldCldConcatenationThirdPartyCaveat(caveat);
         String caveatRootKey = decrypt(signature, caveat.getCaveatRootOrVerificationKey());
-        String initialSignatureDischargeMacaroon = calculateMAC(caveatRootKey, caveat.getCaveatIdentifier());
+        String initialSignatureDischargeMacaroon = calculateMAC(caveatRootKey, caveat.caveatIdentifier);
         signature = calculateMAC(signature, vldCldConcatenation);
         /*
             2. Check if we already verified a discharge Macaroon in this context that can be used to discharge this Macaroon instance.
                 If that's the case, no additional work is required to verify this caveat; go to the next one.
          */
-        if (context.caveatIdentifierIsAlreadyVerified(caveat.getCaveatIdentifier())) return verify(signature, remainingCaveats, context);
+        if (context.caveatIdentifierIsAlreadyVerified(caveat.caveatIdentifier)) return verify(signature, remainingCaveats, context);
         //  3. Try to find a discharge Macaroon for the current caveat; take into account the impossible discharge Macaroons for better performance.
-        Set<Macaroon> possibleDischargeMacaroons = boundMacaroons.getOrDefault(caveat.getCaveatIdentifier(), Set.of());
+        Set<Macaroon> possibleDischargeMacaroons = boundMacaroons.getOrDefault(ByteBuffer.wrap(caveat.caveatIdentifier), Set.of());
         possibleDischargeMacaroons = context.filterPossibleDischargeMacaroons(possibleDischargeMacaroons); // Filter the already invalid ones.
 
         for (Macaroon possibleDischargeMacaroon : possibleDischargeMacaroons) {
@@ -231,7 +253,7 @@ public abstract class Macaroon implements Serializable {
                 Support for reflexive discharge Macaroons: already assume the discharge Macaroon holds.
                 We check its caveats anyway.
                  */
-                contextForDischargeMacaroon.addAlreadyVerifiedCaveatIdentifier(caveat.getCaveatIdentifier());
+                contextForDischargeMacaroon.addAlreadyVerifiedCaveatIdentifier(caveat.caveatIdentifier);
                 Pair<String, VerificationContext> resultsVerificationDischargeMacaroon =
                         verify(initialSignatureDischargeMacaroon, new ArrayList<>(possibleDischargeMacaroon.caveats), contextForDischargeMacaroon);
                 String currentSignatureDischargeMacaroon = resultsVerificationDischargeMacaroon.getLeft();
@@ -255,9 +277,30 @@ public abstract class Macaroon implements Serializable {
 
     private byte[] calculateVldCldConcatenationThirdPartyCaveat(@NotNull ThirdPartyCaveat caveat) {
         // No cache mechanism here; I don't think it would improve the performance of this method?
-        byte[] toMAC = new byte[caveat.getCaveatRootOrVerificationKey().length + caveat.getCaveatIdentifier().length];
+        byte[] toMAC = new byte[caveat.getCaveatRootOrVerificationKey().length + caveat.caveatIdentifier.length];
         System.arraycopy(caveat.getCaveatRootOrVerificationKey(), 0, toMAC, 0, caveat.getCaveatRootOrVerificationKey().length);
-        System.arraycopy(caveat.getCaveatIdentifier(), 0, toMAC, caveat.getCaveatRootOrVerificationKey().length, caveat.getCaveatIdentifier().length);
+        System.arraycopy(caveat.caveatIdentifier, 0, toMAC, caveat.getCaveatRootOrVerificationKey().length, caveat.caveatIdentifier.length);
         return toMAC;
+    }
+
+    /**
+     * Method to clone the Macaroon instance.
+     * @return  A clone of this Macaroon instance.
+     */
+    public abstract @NotNull Macaroon clone();
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Macaroon macaroon = (Macaroon) o;
+        return hintTargetLocation.equals(macaroon.hintTargetLocation) && Arrays.equals(macaroonIdentifier, macaroon.macaroonIdentifier) && caveats.equals(macaroon.caveats) && macaroonSignature.equals(macaroon.macaroonSignature) && boundMacaroons.equals(macaroon.boundMacaroons);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = Objects.hash(hintTargetLocation, caveats, macaroonSignature, boundMacaroons);
+        result = 31 * result + Arrays.hashCode(macaroonIdentifier);
+        return result;
     }
 }

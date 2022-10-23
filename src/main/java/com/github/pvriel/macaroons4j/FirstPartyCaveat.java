@@ -17,7 +17,7 @@ public abstract class FirstPartyCaveat extends Caveat {
      * @throws  IllegalStateException
      *          If the first-party caveat can not be verified in the given context.
      */
-    protected abstract void verify(@NotNull Macaroon macaroon, @NotNull VerificationContext context) throws IllegalStateException;
+    public abstract void verify(@NotNull Macaroon macaroon, @NotNull VerificationContext context) throws IllegalStateException;
 
     /**
      * Constructor for the {@link FirstPartyCaveat} class.

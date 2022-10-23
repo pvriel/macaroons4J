@@ -41,7 +41,7 @@ public class RangeConstraintFirstPartyCaveat extends FirstPartyCaveat {
      *          that is already registered within the given verification context.
      */
     @Override
-    protected void verify(@NotNull Macaroon macaroon, @NotNull VerificationContext context) throws IllegalStateException {
+    public void verify(@NotNull Macaroon macaroon, @NotNull VerificationContext context) throws IllegalStateException {
         Pair<String, Pair<Long, Long>> UUIDAndRange = extractRangeUUIDAndBoundsFromCaveatIdentifier();
         String rangeUUID = UUIDAndRange.getLeft();
         Pair<Long, Long> range = UUIDAndRange.getRight();
@@ -49,8 +49,12 @@ public class RangeConstraintFirstPartyCaveat extends FirstPartyCaveat {
         context.addRangeConstraint(rangeUUID, range);
     }
 
-    private @NotNull Pair<@NotNull String, @NotNull Pair<@NotNull Long, @NotNull Long>> extractRangeUUIDAndBoundsFromCaveatIdentifier() {
-        String caveatIdentifierAsString = new String(getCaveatIdentifier(), StandardCharsets.UTF_8);
+    /**
+     * Method to extract the range UUID and the range from the caveat identifier of this range constraint.
+     * @return  A pair of the range UUID and the range.
+     */
+    public @NotNull Pair<@NotNull String, @NotNull Pair<@NotNull Long, @NotNull Long>> extractRangeUUIDAndBoundsFromCaveatIdentifier() {
+        String caveatIdentifierAsString = new String(caveatIdentifier, StandardCharsets.UTF_8);
 
         Matcher matcher = regexPattern.matcher(caveatIdentifierAsString);
         if (!matcher.matches()) throw new IllegalStateException("The caveat identifier '" + caveatIdentifierAsString + "' does not match the expected format.");

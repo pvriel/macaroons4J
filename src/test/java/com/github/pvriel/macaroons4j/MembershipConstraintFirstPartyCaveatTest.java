@@ -63,7 +63,7 @@ class MembershipConstraintFirstPartyCaveatTest {
         verificationContext.addMembershipConstraint(membershipUUID, currentlySupportedElements);
 
         assertDoesNotThrow(() -> membershipConstraintFirstPartyCaveat.verify(emptyMacaroon, verificationContext));
-        assertEquals(requiredMembers, verificationContext.getMembershipConstraints().get(membershipUUID));
+        assertEquals(requiredMembers, verificationContext.membershipConstraints.get(membershipUUID));
     }
 
     @Test

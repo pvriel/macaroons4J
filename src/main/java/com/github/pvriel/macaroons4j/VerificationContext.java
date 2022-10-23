@@ -3,6 +3,7 @@ package com.github.pvriel.macaroons4j;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 
+import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -11,9 +12,15 @@ import java.util.stream.Collectors;
  */
 public class VerificationContext {
 
-    private final @NotNull Map<@NotNull String, @NotNull Set<@NotNull String>> membershipConstraints;
-    private final @NotNull Map<@NotNull String, @NotNull Pair<@NotNull Long, @NotNull Long>> rangeConstraints;
-    private final @NotNull Set<byte[]> alreadyVerifiedCaveatIdentifiers;
+    /**
+     * Map representing the membership constraints, mapping their UUIDs to the elements of the membership.
+     */
+    public final @NotNull Map<@NotNull String, @NotNull Set<@NotNull String>> membershipConstraints;
+    /**
+     * Map representing the range constraints, mapping their UUIDs to the range.
+     */
+    public final @NotNull Map<@NotNull String, @NotNull Pair<@NotNull Long, @NotNull Long>> rangeConstraints;
+    private final @NotNull Set<ByteBuffer> alreadyVerifiedCaveatIdentifiers;
     private final @NotNull Set<@NotNull Macaroon> invalidDischargeMacaroons;
 
     /**
@@ -101,11 +108,11 @@ public class VerificationContext {
     }
 
     boolean caveatIdentifierIsAlreadyVerified(byte[] identifier) {
-        return alreadyVerifiedCaveatIdentifiers.contains(identifier);
+        return alreadyVerifiedCaveatIdentifiers.contains(ByteBuffer.wrap(identifier));
     }
 
     void addAlreadyVerifiedCaveatIdentifier(byte[] identifier) {
-        alreadyVerifiedCaveatIdentifiers.add(identifier);
+        alreadyVerifiedCaveatIdentifiers.add(ByteBuffer.wrap(identifier));
     }
 
     void addInvalidDischargeMacaroon(@NotNull Macaroon macaroon) {
@@ -116,25 +123,9 @@ public class VerificationContext {
         return possibleDischargeMacaroons.stream().filter(macaroon -> !invalidDischargeMacaroons.contains(macaroon)).collect(Collectors.toSet());
     }
 
-    /**
-     * Getter for the membership constraints.
-     * @return  The membership constraints.
-     */
-    public @NotNull Map<@NotNull String, @NotNull Set<@NotNull String>> getMembershipConstraints() {
-        return membershipConstraints;
-    }
-
-    /**
-     * Getter for the range constraints.
-     * @return  The range constraints.
-     */
-    public @NotNull Map<@NotNull String, @NotNull Pair<@NotNull Long, @NotNull Long>> getRangeConstraints() {
-        return rangeConstraints;
-    }
-
     private VerificationContext(@NotNull Map<@NotNull String, @NotNull Set<@NotNull String>> membershipConstraints,
                                 @NotNull Map<@NotNull String, @NotNull Pair<@NotNull Long, @NotNull Long>> rangeConstraints,
-                                @NotNull Set<byte[]> alreadyVerifiedCaveatIdentifiers,
+                                @NotNull Set<ByteBuffer> alreadyVerifiedCaveatIdentifiers,
                                 @NotNull Set<@NotNull Macaroon> invalidDischargeMacaroons) {
         this.membershipConstraints = membershipConstraints;
         this.rangeConstraints = rangeConstraints;
@@ -149,5 +140,18 @@ public class VerificationContext {
     @NotNull public VerificationContext clone() {
         return new VerificationContext(new HashMap<>(membershipConstraints), new HashMap<>(rangeConstraints),
                 new HashSet<>(alreadyVerifiedCaveatIdentifiers), new HashSet<>(invalidDischargeMacaroons));
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        VerificationContext that = (VerificationContext) o;
+        return membershipConstraints.equals(that.membershipConstraints) && rangeConstraints.equals(that.rangeConstraints) && alreadyVerifiedCaveatIdentifiers.equals(that.alreadyVerifiedCaveatIdentifiers) && invalidDischargeMacaroons.equals(that.invalidDischargeMacaroons);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(membershipConstraints, rangeConstraints, alreadyVerifiedCaveatIdentifiers, invalidDischargeMacaroons);
     }
 }
