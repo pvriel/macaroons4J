@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
+import java.util.HashSet;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -69,7 +70,8 @@ public abstract class MacaroonTest {
 
         FirstPartyCaveat nonVerifiableFirstPartyCaveat = new MockFirstPartyCaveat(generateRandomStringOfLength(256).getBytes(), false);
         macaroonTwo.addCaveat(nonVerifiableFirstPartyCaveat);
-        assertThrows(IllegalStateException.class, () -> macaroonTwo.verify(macaroonSecret, new VerificationContext()));
+        HashSet<VerificationContext> contexts = macaroonTwo.verify(macaroonSecret, new VerificationContext());
+        assertEquals(0, contexts.size());
     }
 
     @Test
@@ -85,7 +87,8 @@ public abstract class MacaroonTest {
         ThirdPartyCaveat thirdPartyCaveat = new MockThirdPartyCaveat(thirdPartyCaveatSecretKey, thirdPartyCaveatIdentifier);
         macaroon.addCaveat(thirdPartyCaveat);
 
-        assertThrows(IllegalStateException.class, () -> macaroon.verify(macaroonSecret, new VerificationContext()));
+        HashSet<VerificationContext> contexts = macaroon.verify(macaroonSecret, new VerificationContext());
+        assertEquals(0, contexts.size());
     }
 
     @Test
@@ -106,7 +109,8 @@ public abstract class MacaroonTest {
         Macaroon forgedDischargeMacaroon = new SimpleMacaroon(forgedThirdPartyCaveatSecretKey, thirdPartyCaveatIdentifier, "");
         macaroon.bindMacaroonForRequest(forgedDischargeMacaroon);
 
-        assertThrows(IllegalStateException.class, () -> macaroon.verify(macaroonSecret, new VerificationContext()));
+        HashSet<VerificationContext> contexts = macaroon.verify(macaroonSecret, new VerificationContext());
+        assertEquals(0, contexts.size());
     }
 
     @Test
@@ -127,7 +131,8 @@ public abstract class MacaroonTest {
         dischargeMacaroon.addCaveat(firstPartyCaveatDischargeMacaroon);
         macaroon.bindMacaroonForRequest(dischargeMacaroon);
 
-        assertThrows(IllegalStateException.class, () -> macaroon.verify(macaroonSecret, new VerificationContext()));
+        HashSet<VerificationContext> contexts = macaroon.verify(macaroonSecret, new VerificationContext());
+        assertEquals(0, contexts.size());
     }
 
     @Test
@@ -146,14 +151,15 @@ public abstract class MacaroonTest {
 
     @Test
     @DisplayName("Forged signatures are detected.")
-    public void testNine() throws Exception {
+    public void testNine() {
         String hintTargetLocation = generateRandomStringOfLength(256);
         byte[] macaroonIdentifier = generateRandomStringOfLength(256).getBytes(StandardCharsets.UTF_8);
         String macaroonSecret = generateRandomStringOfLength(256);
         Macaroon macaroon = new SimpleMacaroon(macaroonSecret, macaroonIdentifier, hintTargetLocation);
         macaroon.macaroonSignature = generateRandomStringOfLength(256);
 
-        assertThrows(IllegalStateException.class, () -> macaroon.verify(macaroonSecret, new VerificationContext()));
+        HashSet<VerificationContext> validContexts = macaroon.verify(macaroonSecret, new VerificationContext());
+        assertEquals(0, validContexts.size());
     }
 
     @Test

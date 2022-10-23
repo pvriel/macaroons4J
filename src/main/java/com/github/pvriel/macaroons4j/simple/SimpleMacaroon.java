@@ -64,7 +64,7 @@ public class SimpleMacaroon extends Macaroon {
 
     @Override
     public @NotNull Macaroon clone() {
-        return new SimpleMacaroon(hintTargetLocation, macaroonIdentifier, new LinkedList<>(caveats), macaroonSignature, new HashMap<>(boundMacaroons));
+        return new SimpleMacaroon(hintTargetLocation, macaroonIdentifier, caveats, macaroonSignature, boundMacaroons);
     }
 
     @Override

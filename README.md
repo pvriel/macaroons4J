@@ -23,8 +23,10 @@ String macaroonSecret = "A secret, only known to the target location";
 
 Macaroon macaroon = new SimpleMacaroon(macaroonSecret, macaroonIdentifier, hintTargetLocation);
 VerificationContext context = new VerificationContext();
-macaroon.verify(macaroonSecret, context); // No exceptions thrown.
+HashSet<VerificationContext> validContexts = macaroon.verify(macaroonSecret, context);
+assert(validContexts.size() >= 1);
 ```
+
 ### Working with first-party caveats
 ```java
 byte[] firstPartyCaveatIdentifier = UUID.randomUUID().toString().getBytes(StandardCharsets.UTF_8);
@@ -40,15 +42,17 @@ FirstPartyCaveat timeConstraint = new FirstPartyCaveat(firstPartyCaveatIdentifie
     }
 };
 macaroon.addCaveat(timeConstraint);
-macaroon.verify(macaroonSecret, context); // No exceptions thrown.
+validContexts = macaroon.verify(macaroonSecret, context);
+assert(validContexts.size() >= 1);
 
 context = new VerificationContext();
 context.addRangeConstraint("time", Pair.of(11, 15));
 /*
-    Exception thrown: context only valid in 'time' range 11 - 15, while the constraint is only valid between 5 - 10.
+    No possible solutions here: context only valid in 'time' range 11 - 15, while the constraint is only valid between 5 - 10.
     There is no overlapping between the two ranges.
  */
-macaroon.verify(macaroonSecret, context);
+validContexts = macaroon.verify(macaroonSecret, context);
+assert(validContexts.size() == 0);
 ```
 ### Working with third-party caveats
 ```java
@@ -63,7 +67,8 @@ macaroon.verify(macaroonSecret, new VerificationContext()); // Exception thrown:
 // You can add additional caveats to the discharge Macaroons, but we are not doing that here.
 Macaroon dischargeMacaroon = new SimpleMacaroon(thirdPartyCaveatRootKey, thirdPartyCaveatIdentifier, hintDischargeLocation);
 macaroon.bindMacaroonForRequest(dischargeMacaroon);
-macaroon.verify(macaroonSecret, new VerificationContext()); // No exceptions thrown.
+validContexts = macaroon.verify(macaroonSecret, new VerificationContext());
+assert(validContexts.size() >= 1);
 ```
 
 ***

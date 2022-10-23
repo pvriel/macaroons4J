@@ -24,7 +24,7 @@ public abstract class FirstPartyCaveat extends Caveat {
      * @param   caveatIdentifier
      *          The identifier of the caveat.
      */
-    protected FirstPartyCaveat(byte[] caveatIdentifier) {
+    public FirstPartyCaveat(byte[] caveatIdentifier) {
         super(caveatIdentifier);
     }
 }

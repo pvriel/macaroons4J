@@ -15,13 +15,13 @@ public class VerificationContext {
     /**
      * Map representing the membership constraints, mapping their UUIDs to the elements of the membership.
      */
-    public final @NotNull Map<@NotNull String, @NotNull Set<@NotNull String>> membershipConstraints;
+    public final @NotNull HashMap<@NotNull String, @NotNull Set<@NotNull String>> membershipConstraints;
     /**
      * Map representing the range constraints, mapping their UUIDs to the range.
      */
-    public final @NotNull Map<@NotNull String, @NotNull Pair<@NotNull Long, @NotNull Long>> rangeConstraints;
-    private final @NotNull Set<ByteBuffer> alreadyVerifiedCaveatIdentifiers;
-    private final @NotNull Set<@NotNull Macaroon> invalidDischargeMacaroons;
+    public final @NotNull HashMap<@NotNull String, @NotNull Pair<@NotNull Long, @NotNull Long>> rangeConstraints;
+    private final @NotNull HashSet<ByteBuffer> alreadyVerifiedCaveatIdentifiers;
+    private final @NotNull HashSet<@NotNull Macaroon> invalidDischargeMacaroons;
 
     /**
      * Default constructor for the {@link VerificationContext} class.
@@ -127,10 +127,10 @@ public class VerificationContext {
                                 @NotNull Map<@NotNull String, @NotNull Pair<@NotNull Long, @NotNull Long>> rangeConstraints,
                                 @NotNull Set<ByteBuffer> alreadyVerifiedCaveatIdentifiers,
                                 @NotNull Set<@NotNull Macaroon> invalidDischargeMacaroons) {
-        this.membershipConstraints = membershipConstraints;
-        this.rangeConstraints = rangeConstraints;
-        this.alreadyVerifiedCaveatIdentifiers = alreadyVerifiedCaveatIdentifiers;
-        this.invalidDischargeMacaroons = invalidDischargeMacaroons;
+        this.membershipConstraints = new HashMap<>(membershipConstraints);
+        this.rangeConstraints = new HashMap<>(rangeConstraints);
+        this.alreadyVerifiedCaveatIdentifiers = new HashSet<>(alreadyVerifiedCaveatIdentifiers);
+        this.invalidDischargeMacaroons = new HashSet<>(invalidDischargeMacaroons);
     }
 
     /**
@@ -138,8 +138,8 @@ public class VerificationContext {
      * @return  A clone of this context.
      */
     @NotNull public VerificationContext clone() {
-        return new VerificationContext(new HashMap<>(membershipConstraints), new HashMap<>(rangeConstraints),
-                new HashSet<>(alreadyVerifiedCaveatIdentifiers), new HashSet<>(invalidDischargeMacaroons));
+        return new VerificationContext(membershipConstraints, rangeConstraints,
+                alreadyVerifiedCaveatIdentifiers, invalidDischargeMacaroons);
     }
 
     @Override

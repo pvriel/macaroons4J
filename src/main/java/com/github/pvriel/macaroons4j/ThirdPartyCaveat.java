@@ -4,6 +4,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
@@ -15,7 +16,7 @@ public class ThirdPartyCaveat extends Caveat {
     /**
      * A hint to the locations where this third-party caveat can be discharged.
      */
-    public final @NotNull Set<@NotNull String> locations;
+    public final @NotNull HashSet<@NotNull String> locations;
     /**
      * A byte array, which is originally the root key of the caveat.
      * Once the caveat is added to a Macaroon instance, it is replaced with the verification key.
@@ -46,7 +47,7 @@ public class ThirdPartyCaveat extends Caveat {
      */
     public ThirdPartyCaveat(String caveatRootKey, byte[] caveatIdentifier, @NotNull Set<@NotNull String> locations) {
         super(caveatIdentifier);
-        this.locations = locations;
+        this.locations = new HashSet<>(locations);
         this.caveatRootOrVerificationKey = caveatRootKey.getBytes(StandardCharsets.UTF_8);
     }
 
