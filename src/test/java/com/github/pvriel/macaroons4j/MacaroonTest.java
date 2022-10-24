@@ -9,6 +9,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.HashSet;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -38,18 +39,20 @@ public abstract class MacaroonTest {
 
     @Test
     @DisplayName("A Macaroon without any caveats can always be constructed and verified.")
-    public void testTwo() throws Exception {
+    public void testTwo() {
         String hintTargetLocation = generateRandomStringOfLength(256);
         byte[] macaroonIdentifier = generateRandomStringOfLength(256).getBytes(StandardCharsets.UTF_8);
         String macaroonSecret = generateRandomStringOfLength(256);
         Macaroon macaroon = new SimpleMacaroon(macaroonSecret, macaroonIdentifier, hintTargetLocation);
 
-        assertDoesNotThrow(() -> macaroon.verify(macaroonSecret, new VerificationContext()));
+        HashSet<VerificationContext> contexts = macaroon.verify(macaroonSecret, new VerificationContext());
+        assertEquals(contexts.size(), 1);
+        assertEquals(new VerificationContext(), contexts.iterator().next());
     }
 
     @Test
     @DisplayName("A Macaroon with a first-party caveat can be constructed and verified if the caveat holds in the context.")
-    public void testThree() throws Exception {
+    public void testThree() {
         String hintTargetLocation = generateRandomStringOfLength(256);
         byte[] macaroonIdentifier = generateRandomStringOfLength(256).getBytes(StandardCharsets.UTF_8);
         String macaroonSecret = generateRandomStringOfLength(256);
@@ -57,7 +60,9 @@ public abstract class MacaroonTest {
 
         FirstPartyCaveat verifiableFirstPartyCaveat = new MockFirstPartyCaveat(generateRandomStringOfLength(256).getBytes(), true);
         macaroonOne.addCaveat(verifiableFirstPartyCaveat);
-        assertDoesNotThrow(() -> macaroonOne.verify(macaroonSecret, new VerificationContext()));
+        HashSet<VerificationContext> contexts = macaroonOne.verify(macaroonSecret, new VerificationContext());
+        assertEquals(1, contexts.size());
+        assertEquals(new VerificationContext(), contexts.iterator().next());
     }
 
     @Test
@@ -200,14 +205,16 @@ public abstract class MacaroonTest {
                 if (!myValue) throw new IllegalStateException("myValue is set to false.");
             }
         }
-        Macaroon dischargeMacaroonOne = new SimpleMacaroon(thirdPartyCaveatSecretKey, thirdPartyCaveatIdentifier, "");
-        Macaroon dischargeMacaroonTwo = new SimpleMacaroon(thirdPartyCaveatSecretKey, thirdPartyCaveatIdentifier, "");
+        Macaroon dischargeMacaroonOne = new SimpleMacaroon(thirdPartyCaveatSecretKey, thirdPartyCaveatIdentifier, "testOne");
+        Macaroon dischargeMacaroonTwo = new SimpleMacaroon(thirdPartyCaveatSecretKey, thirdPartyCaveatIdentifier, "testTwo");
         dischargeMacaroonOne.addCaveat(new AlteringValidityFirstPartyCaveat(generateRandomStringOfLength(265).getBytes(StandardCharsets.UTF_8)));
         dischargeMacaroonTwo.addCaveat(new AlteringValidityFirstPartyCaveat(generateRandomStringOfLength(265).getBytes(StandardCharsets.UTF_8)));
         macaroon.bindMacaroonForRequest(dischargeMacaroonOne);
         macaroon.bindMacaroonForRequest(dischargeMacaroonTwo);
 
-        assertDoesNotThrow(() -> macaroon.verify(macaroonSecret, new VerificationContext()));
+        HashSet<VerificationContext> contexts = macaroon.verify(macaroonSecret, new VerificationContext());
+        assertEquals(1, contexts.size());
+        assertEquals(new VerificationContext(), contexts.iterator().next());
         assertFalse(alteringFirstPartyCaveatIsValid.get());
     }
 
@@ -231,7 +238,9 @@ public abstract class MacaroonTest {
         dischargeMacaroonOne.addCaveat(dischargeMacaroonFirstPartyCaveat);
         macaroon.bindMacaroonForRequest(dischargeMacaroonOne);
 
-        macaroon.verify(macaroonSecret, new VerificationContext());
+        HashSet<VerificationContext> results = macaroon.verify(macaroonSecret, new VerificationContext());
+        assertEquals(1, results.size());
+        assertEquals(new VerificationContext(), results.iterator().next());
         assertEquals(1, dischargeMacaroonFirstPartyCaveat.amountOfVerifications);
     }
 
@@ -258,12 +267,62 @@ public abstract class MacaroonTest {
         macaroon.bindMacaroonForRequest(invalidDischargeMacaroon);
         macaroon.bindMacaroonForRequest(validDischargeMacaroon);
 
-        macaroon.verify(macaroonSecret, new VerificationContext());
+        HashSet<VerificationContext> results = macaroon.verify(macaroonSecret, new VerificationContext());
+        assertEquals(1, results.size());
+        assertEquals(new VerificationContext(), results.iterator().next());
         assertTrue(1 >= invalidDischargeMacaroonFirstPartyCaveat.amountOfVerifications);
         assertEquals(1, validDischargeMacaroonFirstPartyCaveat.amountOfVerifications);
     }
 
-    private static String generateRandomStringOfLength(int length) {
+    @Test
+    void testEquals() throws Exception {
+        Macaroon macaroon = generateRandomMacaroon();
+        macaroon.addCaveat(new MembershipConstraintFirstPartyCaveat(generateRandomStringOfLength(256), new HashSet<>(Set.of(generateRandomStringOfLength(256)))));
+        macaroon.addCaveat(new RangeConstraintFirstPartyCaveat(generateRandomStringOfLength(256), 0L, 100L));
+        macaroon.addCaveat(new ThirdPartyCaveat(generateRandomStringOfLength(256), generateRandomStringOfLength(256).getBytes(StandardCharsets.UTF_8), generateRandomStringOfLength(256)));
+        Macaroon clone = macaroon.clone();
+        assertEquals(macaroon, clone);
+    }
+
+    @Test
+    @DisplayName("All verification contexts are returned after the verification process of a Macaroon.")
+    void test13() throws Exception {
+        String macaroonSecret = generateRandomStringOfLength(256);
+        Macaroon macaroon = new SimpleMacaroon(macaroonSecret, generateRandomStringOfLength(256).getBytes(StandardCharsets.UTF_8), generateRandomStringOfLength(256));
+
+        String dischargeMacaroonSecret = generateRandomStringOfLength(256);
+        String dischargeMacaroonIdentifier = generateRandomStringOfLength(256);
+        ThirdPartyCaveat thirdPartyCaveat = new ThirdPartyCaveat(dischargeMacaroonSecret, dischargeMacaroonIdentifier.getBytes(StandardCharsets.UTF_8), "");
+        macaroon.addCaveat(thirdPartyCaveat);
+        macaroon.addCaveat(new RangeConstraintFirstPartyCaveat("TIME", 0L, 100L));
+
+        Macaroon validDischargeMacaroonOne = new SimpleMacaroon(dischargeMacaroonSecret, dischargeMacaroonIdentifier.getBytes(StandardCharsets.UTF_8), "");
+        validDischargeMacaroonOne.addCaveat(new MembershipConstraintFirstPartyCaveat("ACCESS", new HashSet<>(Set.of("resourceOne"))));
+        validDischargeMacaroonOne.addCaveat(new RangeConstraintFirstPartyCaveat("TIME", -100L, 0L));
+        macaroon.bindMacaroonForRequest(validDischargeMacaroonOne);
+
+        Macaroon validDischargeMacaroonTwo = new SimpleMacaroon(dischargeMacaroonSecret, dischargeMacaroonIdentifier.getBytes(StandardCharsets.UTF_8), "");
+        validDischargeMacaroonTwo.addCaveat(new MembershipConstraintFirstPartyCaveat("ACCESS", new HashSet<>(Set.of("resourceTwo"))));
+        validDischargeMacaroonTwo.addCaveat(new RangeConstraintFirstPartyCaveat("TIME", 100L, 200L));
+        macaroon.bindMacaroonForRequest(validDischargeMacaroonTwo);
+
+        Macaroon invalidDischargeMacaroonThree = new SimpleMacaroon(dischargeMacaroonSecret, dischargeMacaroonIdentifier.getBytes(StandardCharsets.UTF_8), "");
+        invalidDischargeMacaroonThree.addCaveat(new RangeConstraintFirstPartyCaveat("TIME", 200L, 300L));
+        macaroon.bindMacaroonForRequest(invalidDischargeMacaroonThree);
+
+        VerificationContext expectedResultOne = new VerificationContext();
+        expectedResultOne.addMembershipConstraint("ACCESS", Set.of("resourceOne"));
+        expectedResultOne.addRangeConstraint("TIME", 0L, 0L);
+        VerificationContext expectedResultTwo = new VerificationContext();
+        expectedResultTwo.addMembershipConstraint("ACCESS", Set.of("resourceTwo"));
+        expectedResultTwo.addRangeConstraint("TIME", 100L, 100L);
+        HashSet<VerificationContext> expectedResults = new HashSet<>(Set.of(expectedResultOne, expectedResultTwo));
+        HashSet<VerificationContext> results = macaroon.verify(macaroonSecret, new VerificationContext());
+        assertEquals(expectedResults, results);
+
+    }
+
+    static String generateRandomStringOfLength(int length) {
         StringBuilder stringBuilder = new StringBuilder(length);
         for (int i = 0; i < length; i ++) stringBuilder.append(allowedCharacters.charAt(random.nextInt(allowedCharacters.length())));
         return stringBuilder.toString();

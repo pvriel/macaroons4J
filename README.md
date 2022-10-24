@@ -1,7 +1,7 @@
 # macaroons4J &nbsp; ![Java](https://img.shields.io/badge/java-%23ED8B00.svg?style=for-the-badge&logo=java&logoColor=white)
 
 [![Project Status: Active](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
-[![Coverage](https://badgen.net/badge/coverage/86%25/green)](https://badgen.net/badge/coverage/86%25/green)
+[![Coverage](https://badgen.net/badge/coverage/96%25/green)](https://badgen.net/badge/coverage/96%25/green)
 
  A Java library for <a href="https://research.google/pubs/pub41892/">Macaroons</a>.
 <br>The aim of this library is to provide an easy-to-use, yet versatile (e.g., support for structural caveats) library for developers.

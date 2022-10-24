@@ -1,8 +1,8 @@
 package com.github.pvriel.macaroons4j.simple;
 
 import com.github.pvriel.macaroons4j.Caveat;
-import org.jetbrains.annotations.NotNull;
 import com.github.pvriel.macaroons4j.Macaroon;
+import org.jetbrains.annotations.NotNull;
 
 import javax.crypto.*;
 import javax.crypto.spec.IvParameterSpec;
@@ -11,7 +11,10 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.security.spec.InvalidKeySpecException;
-import java.util.*;
+import java.util.Base64;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.logging.Logger;
 
 /**

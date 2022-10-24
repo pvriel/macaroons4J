@@ -3,9 +3,7 @@ package com.github.pvriel.macaroons4j;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 
-import java.nio.ByteBuffer;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Class representing contexts in which {@link Macaroon} instances can be verified.
@@ -20,14 +18,12 @@ public class VerificationContext {
      * Map representing the range constraints, mapping their UUIDs to the range.
      */
     public final @NotNull HashMap<@NotNull String, @NotNull Pair<@NotNull Long, @NotNull Long>> rangeConstraints;
-    private final @NotNull HashSet<ByteBuffer> alreadyVerifiedCaveatIdentifiers;
-    private final @NotNull HashSet<@NotNull Macaroon> invalidDischargeMacaroons;
 
     /**
      * Default constructor for the {@link VerificationContext} class.
      */
     public VerificationContext() {
-        this(new HashMap<>(), new HashMap<>(), new HashSet<>(), new HashSet<>());
+        this(new HashMap<>(), new HashMap<>());
     }
 
     /**
@@ -107,30 +103,11 @@ public class VerificationContext {
         addRangeConstraint(rangeUUID, Pair.of(lowerBound, upperBound));
     }
 
-    boolean caveatIdentifierIsAlreadyVerified(byte[] identifier) {
-        return alreadyVerifiedCaveatIdentifiers.contains(ByteBuffer.wrap(identifier));
-    }
-
-    void addAlreadyVerifiedCaveatIdentifier(byte[] identifier) {
-        alreadyVerifiedCaveatIdentifiers.add(ByteBuffer.wrap(identifier));
-    }
-
-    void addInvalidDischargeMacaroon(@NotNull Macaroon macaroon) {
-        invalidDischargeMacaroons.add(macaroon);
-    }
-
-    @NotNull Set<@NotNull Macaroon> filterPossibleDischargeMacaroons(@NotNull Set<@NotNull Macaroon> possibleDischargeMacaroons) {
-        return possibleDischargeMacaroons.stream().filter(macaroon -> !invalidDischargeMacaroons.contains(macaroon)).collect(Collectors.toSet());
-    }
-
     private VerificationContext(@NotNull Map<@NotNull String, @NotNull Set<@NotNull String>> membershipConstraints,
-                                @NotNull Map<@NotNull String, @NotNull Pair<@NotNull Long, @NotNull Long>> rangeConstraints,
-                                @NotNull Set<ByteBuffer> alreadyVerifiedCaveatIdentifiers,
-                                @NotNull Set<@NotNull Macaroon> invalidDischargeMacaroons) {
+                                @NotNull Map<@NotNull String, @NotNull Pair<@NotNull Long, @NotNull Long>> rangeConstraints) {
         this.membershipConstraints = new HashMap<>(membershipConstraints);
         this.rangeConstraints = new HashMap<>(rangeConstraints);
-        this.alreadyVerifiedCaveatIdentifiers = new HashSet<>(alreadyVerifiedCaveatIdentifiers);
-        this.invalidDischargeMacaroons = new HashSet<>(invalidDischargeMacaroons);
+
     }
 
     /**
@@ -138,8 +115,7 @@ public class VerificationContext {
      * @return  A clone of this context.
      */
     @NotNull public VerificationContext clone() {
-        return new VerificationContext(membershipConstraints, rangeConstraints,
-                alreadyVerifiedCaveatIdentifiers, invalidDischargeMacaroons);
+        return new VerificationContext(membershipConstraints, rangeConstraints);
     }
 
     @Override
@@ -147,11 +123,11 @@ public class VerificationContext {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         VerificationContext that = (VerificationContext) o;
-        return membershipConstraints.equals(that.membershipConstraints) && rangeConstraints.equals(that.rangeConstraints) && alreadyVerifiedCaveatIdentifiers.equals(that.alreadyVerifiedCaveatIdentifiers) && invalidDischargeMacaroons.equals(that.invalidDischargeMacaroons);
+        return membershipConstraints.equals(that.membershipConstraints) && rangeConstraints.equals(that.rangeConstraints);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(membershipConstraints, rangeConstraints, alreadyVerifiedCaveatIdentifiers, invalidDischargeMacaroons);
+        return Objects.hash(membershipConstraints, rangeConstraints);
     }
 }

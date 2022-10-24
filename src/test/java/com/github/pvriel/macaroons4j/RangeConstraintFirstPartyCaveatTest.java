@@ -1,9 +1,9 @@
 package com.github.pvriel.macaroons4j;
 
+import com.github.pvriel.macaroons4j.simple.SimpleMacaroon;
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import com.github.pvriel.macaroons4j.simple.SimpleMacaroon;
 
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
