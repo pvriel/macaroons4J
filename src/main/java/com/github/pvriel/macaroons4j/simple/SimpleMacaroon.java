@@ -44,13 +44,26 @@ public class SimpleMacaroon extends Macaroon {
      *          A hint to the target location (which typically issues the Macaroon instance).
      */
     public SimpleMacaroon(@NotNull String secretString, byte[] macaroonIdentifier, @NotNull String hintTargetLocation) {
-        super(secretString, macaroonIdentifier, hintTargetLocation);
+        this(secretString, macaroonIdentifier, Set.of(hintTargetLocation));
     }
 
     /**
      * Constructor for the {@link SimpleMacaroon} class.
-     * @param   hintTargetLocation
-     *          A hint to the target location (which typically issues the Macaroon instance).
+     * @param   secretString
+     *          The secret value of the Macaroon, which is required to both generate and verify the signature of the Macaroon instance.
+     * @param   macaroonIdentifier
+     *          The public identifier of the Macaroon instance.
+     * @param   hintsTargetLocations
+     *          Hints to the target locations (which typically issue the Macaroon instance).
+     */
+    public SimpleMacaroon(@NotNull String secretString, byte[] macaroonIdentifier, @NotNull Set<@NotNull String> hintsTargetLocations) {
+        super(secretString, macaroonIdentifier, hintsTargetLocations);
+    }
+
+    /**
+     * Constructor for the {@link SimpleMacaroon} class.
+     * @param   hintsTargetLocations
+     *          Hints to the target locations (which typically issue the Macaroon instance).
      * @param   macaroonIdentifier
      *          The public identifier of the Macaroon instance.
      * @param   caveats
@@ -60,14 +73,16 @@ public class SimpleMacaroon extends Macaroon {
      * @param   boundMacaroons
      *          A set of bound Macaroons, which are attached to the Macaroon instance.
      */
-    private SimpleMacaroon(@NotNull String hintTargetLocation, byte[] macaroonIdentifier, @NotNull List<@NotNull Caveat> caveats,
+    private SimpleMacaroon(@NotNull Set<String> hintsTargetLocations, byte[] macaroonIdentifier, @NotNull List<@NotNull Caveat> caveats,
                            @NotNull String macaroonSignature, @NotNull Map<ByteBuffer, @NotNull Set<@NotNull Macaroon>> boundMacaroons) {
-        super(hintTargetLocation, macaroonIdentifier, caveats, macaroonSignature, boundMacaroons);
+        super(hintsTargetLocations, macaroonIdentifier, caveats, macaroonSignature, boundMacaroons);
     }
+
+
 
     @Override
     public @NotNull Macaroon clone() {
-        return new SimpleMacaroon(hintTargetLocation, macaroonIdentifier, caveats, macaroonSignature, boundMacaroons);
+        return new SimpleMacaroon(hintsTargetLocations, macaroonIdentifier, caveats, macaroonSignature, boundMacaroons);
     }
 
     @Override

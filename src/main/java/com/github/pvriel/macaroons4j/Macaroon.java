@@ -16,9 +16,9 @@ import java.util.stream.Collectors;
 public abstract class Macaroon implements Serializable {
 
     /**
-     * A hint to the target location that issued this Macaroon instance.
+     * Hints to the target locations that can verify this Macaroon.
      */
-    public final @NotNull String hintTargetLocation;
+    public final @NotNull HashSet<String> hintsTargetLocations;
     /**
      * The identifier of the Macaroon.
      */
@@ -92,14 +92,27 @@ public abstract class Macaroon implements Serializable {
      *          A hint to the target location (which typically issues the Macaroon instance).
      */
     public Macaroon(@NotNull String secretString, byte[] macaroonIdentifier, @NotNull String hintTargetLocation) {
-        this(hintTargetLocation, macaroonIdentifier, new LinkedList<>(), "", new HashMap<>()); // "": temporary value
+        this(secretString, macaroonIdentifier, Set.of(hintTargetLocation));
+    }
+
+    /**
+     * Constructor for the {@link Macaroon} class.
+     * @param   secretString
+     *          The secret value of the Macaroon, which is required to both generate and verify the signature of the Macaroon instance.
+     * @param   macaroonIdentifier
+     *          The public identifier of the Macaroon instance.
+     * @param   hintsTargetLocations
+     *          Hints to the target locations (which typically issue the Macaroon instance).
+     */
+    public Macaroon(@NotNull String secretString, byte[] macaroonIdentifier, @NotNull Set<String> hintsTargetLocations) {
+        this(hintsTargetLocations, macaroonIdentifier, new LinkedList<>(), "", new HashMap<>()); // "": temporary value
         this.macaroonSignature = calculateMAC(secretString, macaroonIdentifier);
     }
 
     /**
      * Constructor for the {@link Macaroon} class.
-     * @param   hintTargetLocation
-     *          A hint to the target location (which typically issues the Macaroon instance).
+     * @param   hintsTargetLocations
+     *          Hints to the possible target locations (which typically issue the Macaroon instance).
      * @param   macaroonIdentifier
      *          The public identifier of the Macaroon instance.
      * @param   caveats
@@ -109,9 +122,9 @@ public abstract class Macaroon implements Serializable {
      * @param   boundMacaroons
      *          The discharge Macaroons that are bound to this Macaroon instance.
      */
-    protected Macaroon(@NotNull String hintTargetLocation, byte[] macaroonIdentifier, @NotNull List<@NotNull Caveat> caveats,
+    protected Macaroon(@NotNull Set<String> hintsTargetLocations, byte[] macaroonIdentifier, @NotNull List<@NotNull Caveat> caveats,
                      @NotNull String macaroonSignature, @NotNull Map<ByteBuffer, @NotNull Set<@NotNull Macaroon>> boundMacaroons) {
-        this.hintTargetLocation = hintTargetLocation;
+        this.hintsTargetLocations = new HashSet<>(hintsTargetLocations);
         this.macaroonIdentifier = macaroonIdentifier;
         this.caveats = new ArrayList<>(caveats);
         this.macaroonSignature = macaroonSignature;
@@ -316,12 +329,12 @@ public abstract class Macaroon implements Serializable {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Macaroon macaroon = (Macaroon) o;
-        return hintTargetLocation.equals(macaroon.hintTargetLocation) && Arrays.equals(macaroonIdentifier, macaroon.macaroonIdentifier) && caveats.equals(macaroon.caveats) && macaroonSignature.equals(macaroon.macaroonSignature) && boundMacaroons.equals(macaroon.boundMacaroons);
+        return hintsTargetLocations.equals(macaroon.hintsTargetLocations) && Arrays.equals(macaroonIdentifier, macaroon.macaroonIdentifier) && caveats.equals(macaroon.caveats) && macaroonSignature.equals(macaroon.macaroonSignature) && boundMacaroons.equals(macaroon.boundMacaroons);
     }
 
     @Override
     public int hashCode() {
-        int result = Objects.hash(hintTargetLocation, caveats, macaroonSignature, boundMacaroons);
+        int result = Objects.hash(hintsTargetLocations, caveats, macaroonSignature, boundMacaroons);
         result = 31 * result + Arrays.hashCode(macaroonIdentifier);
         return result;
     }
