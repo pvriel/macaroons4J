@@ -15,7 +15,6 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Logger;
 
 /**
  * Class representing a simple {@link Macaroon} implementation.
@@ -24,7 +23,6 @@ import java.util.logging.Logger;
  */
 public class SimpleMacaroon extends Macaroon {
 
-    private final static @NotNull Logger logger = Logger.getLogger(SimpleMacaroon.class.getName());
     /**
      * The size of the AES keys.
      */
@@ -114,7 +112,6 @@ public class SimpleMacaroon extends Macaroon {
 
     private @NotNull Cipher initCipher(int cipherMode, @NotNull String key) throws InvalidKeySpecException, NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException {
         if (key.length() != AES_KEY_SIZE) {
-            logger.fine(String.format("Invalid key length given for Cipher generation (expected length: %d bytes; got: %d bytes).", AES_KEY_SIZE, key.length()));
             if (key.length() < AES_KEY_SIZE) key = key.repeat((int) Math.ceil(16.0/(double) key.length()));
             key = key.substring(0, AES_KEY_SIZE);
         }
@@ -143,5 +140,10 @@ public class SimpleMacaroon extends Macaroon {
     private byte[] calculateSHA256(byte[] original) throws NoSuchAlgorithmException {
         MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
         return messageDigest.digest(original);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        return super.equals(o);
     }
 }
