@@ -197,7 +197,7 @@ public class VerificationContext {
         }
     }
 
-    private VerificationContext(@NotNull Map<@NotNull String, @NotNull Set<@NotNull String>> membershipConstraints,
+    protected VerificationContext(@NotNull Map<@NotNull String, @NotNull Set<@NotNull String>> membershipConstraints,
                                 @NotNull Map<@NotNull String, @NotNull Pair<@NotNull Long, @NotNull Long>> rangeConstraints) {
         this.membershipConstraints = new HashMap<>(membershipConstraints);
         this.rangeConstraints = new HashMap<>(rangeConstraints);
