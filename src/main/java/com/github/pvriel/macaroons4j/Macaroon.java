@@ -175,6 +175,11 @@ public abstract class Macaroon implements Serializable {
         return macaroonSignature;
     }
 
+    /**
+     * Method to set the signature of the Macaroon.
+     * @param   signature
+     *          The new signature.
+     */
     protected void setMacaroonSignature(@NotNull String signature) {
         macaroonSignature = signature;
     }
