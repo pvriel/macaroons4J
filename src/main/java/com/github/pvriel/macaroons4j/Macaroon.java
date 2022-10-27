@@ -419,9 +419,22 @@ public abstract class Macaroon implements Serializable {
         return returnValue;
     }
 
+    /**
+     * Method to extract third-party caveats, that have not been discharged, for specific target locations.
+     * @param   possibleDischargeLocations
+     *          The locations for which the third-party caveats should be extracted.
+     * @return
+     */
     @NotNull
     public HashSet<@NotNull ThirdPartyCaveat> getAllNonDischargedThirdPartyCaveats(@NotNull Set<@NotNull String> possibleDischargeLocations) {
-        return caveats.stream()
+        // 1. Collect all caveats.
+        Set<Caveat> allCaveats = new HashSet<>(caveats);
+        boundMacaroons.entrySet().stream().flatMap(byteBufferHashSetEntry -> byteBufferHashSetEntry.getValue().stream())
+                .flatMap(macaroon -> macaroon.caveats.stream())
+                .forEach(allCaveats::add);
+
+        // 2. Filter the relevant ones.
+        return allCaveats.stream()
                 .filter(caveat -> {
                     // Only third-party caveats.
                     if (!(caveat instanceof ThirdPartyCaveat)) return false;
@@ -434,7 +447,7 @@ public abstract class Macaroon implements Serializable {
                     // Only third-party caveats that have not been discharged.
                     ByteBuffer wrappedIdentifier = ByteBuffer.wrap(caveat.getCaveatIdentifier());
                     return !boundMacaroons.containsKey(wrappedIdentifier) || boundMacaroons.get(wrappedIdentifier).isEmpty();})
-                .map(caveat -> (ThirdPartyCaveat) caveat) // The Java compiler is SOOOOO stupid sometimes...
+                .map(caveat -> (ThirdPartyCaveat) caveat.clone())
                 .collect(Collectors.toCollection(HashSet::new));
     }
 
