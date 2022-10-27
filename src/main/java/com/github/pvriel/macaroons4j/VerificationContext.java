@@ -43,7 +43,7 @@ public class VerificationContext {
      * <br>This method is not thread-safe.
      * @param   membershipConstraintUUID
      *          The UUID of the membership constraint to copy from the context.
-     * @return  A copy of the members from the membership constraint.
+     * @return  A copy of the members from the membership constraint. If the membership is not found, an empty HashSet is returned.
      */
     @NotNull
     public HashSet<@NotNull String> getCopyOfMembershipConstraint(@NotNull String membershipConstraintUUID) {
@@ -67,7 +67,7 @@ public class VerificationContext {
      * <br>This method is not thread-safe.
      * @param rangeConstraintUUID
      *        The UUID of the range constraint to copy from the context.
-     * @return  A copy of the range from the constraint.
+     * @return  A copy of the range from the constraint. If the range constraint is not found, Pair.of(Long.MIN_VALUE, Long.MAX_VALUE) is returned.
      */
     @NotNull
     public Pair<@NotNull Long, @NotNull Long> getCopyOfRangeConstraint(@NotNull String rangeConstraintUUID) {
@@ -197,6 +197,13 @@ public class VerificationContext {
         }
     }
 
+    /**
+     * Constructor for the {@link VerificationContext} class.
+     * @param   membershipConstraints
+     *          The membership constraints (will be copied).
+     * @param   rangeConstraints
+     *          The range constraints (will be copied).
+     */
     protected VerificationContext(@NotNull Map<@NotNull String, @NotNull Set<@NotNull String>> membershipConstraints,
                                 @NotNull Map<@NotNull String, @NotNull Pair<@NotNull Long, @NotNull Long>> rangeConstraints) {
         this.membershipConstraints = new HashMap<>(membershipConstraints);

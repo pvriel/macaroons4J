@@ -323,10 +323,10 @@ public abstract class Macaroon implements Serializable {
 
             // A) Signature checking.
             if (remainingCaveatsCurrentMacaroon.isEmpty()) {
-                if (!checkSignatures) continue;
-                if (!(currentMacaroon == this && currentSignature.equals(macaroonSignature)) &&
-                    !(bindSignatureForRequest(currentSignature).equals(currentMacaroon.macaroonSignature))) return new HashSet<>();
-                else currentSignaturesWithRemainingCaveats.remove(0);
+                if (checkSignatures && (!(currentMacaroon == this && currentSignature.equals(macaroonSignature)) &&
+                    !(bindSignatureForRequest(currentSignature).equals(currentMacaroon.macaroonSignature)))) return new HashSet<>();
+
+                currentSignaturesWithRemainingCaveats.remove(0);
                 continue;
             }
 
