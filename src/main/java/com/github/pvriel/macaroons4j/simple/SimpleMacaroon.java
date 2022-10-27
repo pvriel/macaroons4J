@@ -1,7 +1,8 @@
 package com.github.pvriel.macaroons4j.simple;
 
-import com.github.pvriel.macaroons4j.Caveat;
-import com.github.pvriel.macaroons4j.Macaroon;
+import com.github.pvriel.macaroons4j.*;
+import com.github.pvriel.macaroons4j.utils.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 
 import javax.crypto.*;
@@ -11,10 +12,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.security.spec.InvalidKeySpecException;
-import java.util.Base64;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Class representing a simple {@link Macaroon} implementation.
@@ -78,7 +76,31 @@ public class SimpleMacaroon extends Macaroon {
         super(hintsTargetLocations, macaroonIdentifier, caveats, macaroonSignature, boundMacaroons);
     }
 
-
+    /**
+     * Method to wrap a verification context into a Macaroon instance, representing the same constraints.
+     * @param   verificationContext
+     *          The {@link VerificationContext} instance to wrap.
+     * @param   lengthSecretKey
+     *          The length of the secret key of the Macaroon. The secret key will be randomly generated.
+     * @param   lengthIdentifier
+     *          The length of the identifier of the Macaroon. The identifier will be randomly generated.
+     * @param   hintTargetLocations
+     *          The hints to the target locations of the Macaroon.
+     * @return  A {@link Pair}, containing the secret key and the Macaroon wrapping the context.
+     */
+    @NotNull
+    public static Pair<@NotNull String, @NotNull SimpleMacaroon> wrap(@NotNull VerificationContext verificationContext,
+                                                                      int lengthSecretKey,
+                                                                      int lengthIdentifier,
+                                                                      @NotNull Set<@NotNull String> hintTargetLocations) {
+        String secretKey = StringUtils.generateRandomStringOfLength(lengthSecretKey);
+        SimpleMacaroon macaroon = new SimpleMacaroon(secretKey, StringUtils.generateRandomStringOfLength(lengthIdentifier).getBytes(StandardCharsets.UTF_8), hintTargetLocations);
+        for (var membershipConstraint : verificationContext.getCopyOfMembershipConstraints().entrySet())
+            macaroon.addCaveat(new MembershipConstraintFirstPartyCaveat(membershipConstraint.getKey(), new HashSet<>(membershipConstraint.getValue())));
+        for (var rangeConstraint : verificationContext.getCopyOfRangeConstraints().entrySet())
+            macaroon.addCaveat(new RangeConstraintFirstPartyCaveat(rangeConstraint.getKey(), rangeConstraint.getValue().getLeft(), rangeConstraint.getValue().getRight()));
+        return Pair.of(secretKey, macaroon);
+    }
 
     @Override
     public @NotNull Macaroon clone() {

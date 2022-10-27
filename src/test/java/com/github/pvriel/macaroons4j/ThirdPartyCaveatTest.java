@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 
-import static com.github.pvriel.macaroons4j.MacaroonTest.generateRandomStringOfLength;
+import static com.github.pvriel.macaroons4j.utils.StringUtils.generateRandomStringOfLength;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class ThirdPartyCaveatTest {

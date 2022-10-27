@@ -11,12 +11,12 @@ import java.security.SecureRandom;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static com.github.pvriel.macaroons4j.utils.StringUtils.generateRandomStringOfLength;
 import static org.junit.jupiter.api.Assertions.*;
 
 public abstract class MacaroonTest {
 
-    private static final String allowedCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-    private static final Random random = new SecureRandom();
+
 
     protected abstract @NotNull Macaroon generateMacaroon(@NotNull String secretString, byte[] macaroonIdentifier, @NotNull String hintTargetLocation);
 
@@ -351,12 +351,6 @@ public abstract class MacaroonTest {
         assertEquals(new HashSet<>(), verificationContext.getCopyOfMembershipConstraintUUIDs());
         assertEquals(new HashSet<>(), verificationContext.getCopyOfRangeConstraintUUIDs());
         assertEquals("VerificationContext{}", verificationContext.toString());
-    }
-
-    static String generateRandomStringOfLength(int length) {
-        StringBuilder stringBuilder = new StringBuilder(length);
-        for (int i = 0; i < length; i ++) stringBuilder.append(allowedCharacters.charAt(random.nextInt(allowedCharacters.length())));
-        return stringBuilder.toString();
     }
 
 
