@@ -6,6 +6,7 @@ import org.jetbrains.annotations.NotNull;
 import java.awt.desktop.AboutEvent;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -443,7 +444,7 @@ public abstract class Macaroon implements Serializable {
     @Override
     public String toString() {
         return "Macaroon{" +
-                "id=" + Arrays.toString(macaroonIdentifier) +
+                "id=" + new String(macaroonIdentifier, StandardCharsets.UTF_8) +
                 ", caveats=" + caveats +
                 ", signature='" + macaroonSignature + '\'' +
                 ", dischargeMacaroons=" + boundMacaroons +
