@@ -419,6 +419,25 @@ public abstract class Macaroon implements Serializable {
         return returnValue;
     }
 
+    @NotNull
+    public HashSet<@NotNull ThirdPartyCaveat> getAllNonDischargedThirdPartyCaveats(@NotNull Set<@NotNull String> possibleDischargeLocations) {
+        return caveats.stream()
+                .filter(caveat -> {
+                    // Only third-party caveats.
+                    if (!(caveat instanceof ThirdPartyCaveat)) return false;
+
+                    // Only caveats that correspond to the given locations.
+                    HashSet<String> definedLocations = ((ThirdPartyCaveat) caveat).getCopyOfLocations();
+                    definedLocations.retainAll(possibleDischargeLocations);
+                    if (definedLocations.isEmpty()) return false;
+
+                    // Only third-party caveats that have not been discharged.
+                    ByteBuffer wrappedIdentifier = ByteBuffer.wrap(caveat.getCaveatIdentifier());
+                    return !boundMacaroons.containsKey(wrappedIdentifier) || boundMacaroons.get(wrappedIdentifier).isEmpty();})
+                .map(caveat -> (ThirdPartyCaveat) caveat) // The Java compiler is SOOOOO stupid sometimes...
+                .collect(Collectors.toCollection(HashSet::new));
+    }
+
     /**
      * Method to clone the Macaroon instance.
      * @return  A clone of this Macaroon instance.

@@ -1,13 +1,11 @@
 package com.github.pvriel.macaroons4j;
 
-import com.github.pvriel.macaroons4j.simple.SimpleMacaroon;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
-import java.security.SecureRandom;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -42,7 +40,7 @@ public abstract class MacaroonTest {
         String hintTargetLocation = generateRandomStringOfLength(256);
         byte[] macaroonIdentifier = generateRandomStringOfLength(256).getBytes(StandardCharsets.UTF_8);
         String macaroonSecret = generateRandomStringOfLength(256);
-        Macaroon macaroon = new SimpleMacaroon(macaroonSecret, macaroonIdentifier, hintTargetLocation);
+        Macaroon macaroon = generateMacaroon(macaroonSecret, macaroonIdentifier, hintTargetLocation);
 
         HashSet<VerificationContext> contexts = macaroon.verify(macaroonSecret, new VerificationContext());
         assertEquals(contexts.size(), 1);
@@ -55,7 +53,7 @@ public abstract class MacaroonTest {
         String hintTargetLocation = generateRandomStringOfLength(256);
         byte[] macaroonIdentifier = generateRandomStringOfLength(256).getBytes(StandardCharsets.UTF_8);
         String macaroonSecret = generateRandomStringOfLength(256);
-        Macaroon macaroonOne = new SimpleMacaroon(macaroonSecret, macaroonIdentifier, hintTargetLocation);
+        Macaroon macaroonOne = generateMacaroon(macaroonSecret, macaroonIdentifier, hintTargetLocation);
 
         FirstPartyCaveat verifiableFirstPartyCaveat = new MockFirstPartyCaveat(generateRandomStringOfLength(256).getBytes(), true);
         macaroonOne.addCaveat(verifiableFirstPartyCaveat);
@@ -70,7 +68,7 @@ public abstract class MacaroonTest {
         String hintTargetLocation = generateRandomStringOfLength(256);
         byte[] macaroonIdentifier = generateRandomStringOfLength(256).getBytes(StandardCharsets.UTF_8);
         String macaroonSecret = generateRandomStringOfLength(256);
-        Macaroon macaroonTwo = new SimpleMacaroon(macaroonSecret, macaroonIdentifier, hintTargetLocation);
+        Macaroon macaroonTwo = generateMacaroon(macaroonSecret, macaroonIdentifier, hintTargetLocation);
 
         FirstPartyCaveat nonVerifiableFirstPartyCaveat = new MockFirstPartyCaveat(generateRandomStringOfLength(256).getBytes(), false);
         macaroonTwo.addCaveat(nonVerifiableFirstPartyCaveat);
@@ -84,7 +82,7 @@ public abstract class MacaroonTest {
         String hintTargetLocation = generateRandomStringOfLength(256);
         byte[] macaroonIdentifier = generateRandomStringOfLength(256).getBytes(StandardCharsets.UTF_8);
         String macaroonSecret = generateRandomStringOfLength(256);
-        Macaroon macaroon = new SimpleMacaroon(macaroonSecret, macaroonIdentifier, hintTargetLocation);
+        Macaroon macaroon = generateMacaroon(macaroonSecret, macaroonIdentifier, hintTargetLocation);
 
         String thirdPartyCaveatSecretKey = generateRandomStringOfLength(256);
         byte[] thirdPartyCaveatIdentifier = generateRandomStringOfLength(256).getBytes();
@@ -101,7 +99,7 @@ public abstract class MacaroonTest {
         String hintTargetLocation = generateRandomStringOfLength(256);
         byte[] macaroonIdentifier = generateRandomStringOfLength(256).getBytes(StandardCharsets.UTF_8);
         String macaroonSecret = generateRandomStringOfLength(256);
-        Macaroon macaroon = new SimpleMacaroon(macaroonSecret, macaroonIdentifier, hintTargetLocation);
+        Macaroon macaroon = generateMacaroon(macaroonSecret, macaroonIdentifier, hintTargetLocation);
 
         String thirdPartyCaveatSecretKey = generateRandomStringOfLength(256);
         byte[] thirdPartyCaveatIdentifier = generateRandomStringOfLength(256).getBytes();
@@ -110,7 +108,7 @@ public abstract class MacaroonTest {
 
         // A malicious entity forged a discharge Macaroon, without knowing the actual root key of the caveat.
         String forgedThirdPartyCaveatSecretKey = generateRandomStringOfLength(256);
-        Macaroon forgedDischargeMacaroon = new SimpleMacaroon(forgedThirdPartyCaveatSecretKey, thirdPartyCaveatIdentifier, "");
+        Macaroon forgedDischargeMacaroon = generateMacaroon(forgedThirdPartyCaveatSecretKey, thirdPartyCaveatIdentifier, "");
         macaroon.bindMacaroonForRequest(forgedDischargeMacaroon);
 
         HashSet<VerificationContext> contexts = macaroon.verify(macaroonSecret, new VerificationContext());
@@ -123,14 +121,14 @@ public abstract class MacaroonTest {
         String hintTargetLocation = generateRandomStringOfLength(256);
         byte[] macaroonIdentifier = generateRandomStringOfLength(256).getBytes(StandardCharsets.UTF_8);
         String macaroonSecret = generateRandomStringOfLength(256);
-        Macaroon macaroon = new SimpleMacaroon(macaroonSecret, macaroonIdentifier, hintTargetLocation);
+        Macaroon macaroon = generateMacaroon(macaroonSecret, macaroonIdentifier, hintTargetLocation);
 
         String thirdPartyCaveatSecretKey = generateRandomStringOfLength(256);
         byte[] thirdPartyCaveatIdentifier = generateRandomStringOfLength(256).getBytes();
         ThirdPartyCaveat thirdPartyCaveat = new MockThirdPartyCaveat(thirdPartyCaveatSecretKey, thirdPartyCaveatIdentifier);
         macaroon.addCaveat(thirdPartyCaveat);
 
-        Macaroon dischargeMacaroon = new SimpleMacaroon(thirdPartyCaveatSecretKey, thirdPartyCaveatIdentifier, "");
+        Macaroon dischargeMacaroon = generateMacaroon(thirdPartyCaveatSecretKey, thirdPartyCaveatIdentifier, "");
         FirstPartyCaveat firstPartyCaveatDischargeMacaroon = new MockFirstPartyCaveat(generateRandomStringOfLength(265).getBytes(), false);
         dischargeMacaroon.addCaveat(firstPartyCaveatDischargeMacaroon);
         macaroon.bindMacaroonForRequest(dischargeMacaroon);
@@ -145,7 +143,7 @@ public abstract class MacaroonTest {
         String hintTargetLocation = generateRandomStringOfLength(256);
         byte[] macaroonIdentifier = generateRandomStringOfLength(256).getBytes(StandardCharsets.UTF_8);
         String macaroonSecret = generateRandomStringOfLength(256);
-        Macaroon macaroonOne = new SimpleMacaroon(macaroonSecret, macaroonIdentifier, hintTargetLocation);
+        Macaroon macaroonOne = generateMacaroon(macaroonSecret, macaroonIdentifier, hintTargetLocation);
         Macaroon macaroonTwo = generateRandomMacaroon();
         Macaroon macaroonThree = generateRandomMacaroon();
 
@@ -159,7 +157,7 @@ public abstract class MacaroonTest {
         String hintTargetLocation = generateRandomStringOfLength(256);
         byte[] macaroonIdentifier = generateRandomStringOfLength(256).getBytes(StandardCharsets.UTF_8);
         String macaroonSecret = generateRandomStringOfLength(256);
-        Macaroon macaroon = new SimpleMacaroon(macaroonSecret, macaroonIdentifier, hintTargetLocation);
+        Macaroon macaroon = generateMacaroon(macaroonSecret, macaroonIdentifier, hintTargetLocation);
         macaroon.setMacaroonSignature(generateRandomStringOfLength(256));
 
         HashSet<VerificationContext> validContexts = macaroon.verify(macaroonSecret, new VerificationContext());
@@ -182,7 +180,7 @@ public abstract class MacaroonTest {
         String hintTargetLocation = generateRandomStringOfLength(256);
         byte[] macaroonIdentifier = generateRandomStringOfLength(256).getBytes(StandardCharsets.UTF_8);
         String macaroonSecret = generateRandomStringOfLength(256);
-        Macaroon macaroon = new SimpleMacaroon(macaroonSecret, macaroonIdentifier, hintTargetLocation);
+        Macaroon macaroon = generateMacaroon(macaroonSecret, macaroonIdentifier, hintTargetLocation);
 
         String thirdPartyCaveatSecretKey = generateRandomStringOfLength(256);
         byte[] thirdPartyCaveatIdentifier = generateRandomStringOfLength(256).getBytes(StandardCharsets.UTF_8);
@@ -209,8 +207,8 @@ public abstract class MacaroonTest {
                 if (!myValue) throw new IllegalStateException("myValue is set to false.");
             }
         }
-        Macaroon dischargeMacaroonOne = new SimpleMacaroon(thirdPartyCaveatSecretKey, thirdPartyCaveatIdentifier, "testOne");
-        Macaroon dischargeMacaroonTwo = new SimpleMacaroon(thirdPartyCaveatSecretKey, thirdPartyCaveatIdentifier, "testTwo");
+        Macaroon dischargeMacaroonOne = generateMacaroon(thirdPartyCaveatSecretKey, thirdPartyCaveatIdentifier, "testOne");
+        Macaroon dischargeMacaroonTwo = generateMacaroon(thirdPartyCaveatSecretKey, thirdPartyCaveatIdentifier, "testTwo");
         dischargeMacaroonOne.addCaveat(new AlteringValidityFirstPartyCaveat(generateRandomStringOfLength(265).getBytes(StandardCharsets.UTF_8)));
         dischargeMacaroonTwo.addCaveat(new AlteringValidityFirstPartyCaveat(generateRandomStringOfLength(265).getBytes(StandardCharsets.UTF_8)));
         macaroon.bindMacaroonForRequest(dischargeMacaroonOne);
@@ -228,7 +226,7 @@ public abstract class MacaroonTest {
         String hintTargetLocation = generateRandomStringOfLength(256);
         byte[] macaroonIdentifier = generateRandomStringOfLength(256).getBytes(StandardCharsets.UTF_8);
         String macaroonSecret = generateRandomStringOfLength(256);
-        Macaroon macaroon = new SimpleMacaroon(macaroonSecret, macaroonIdentifier, hintTargetLocation);
+        Macaroon macaroon = generateMacaroon(macaroonSecret, macaroonIdentifier, hintTargetLocation);
 
         String thirdPartyCaveatSecretKey = generateRandomStringOfLength(256);
         byte[] thirdPartyCaveatIdentifier = generateRandomStringOfLength(256).getBytes(StandardCharsets.UTF_8);
@@ -237,7 +235,7 @@ public abstract class MacaroonTest {
         macaroon.addCaveat(thirdPartyCaveatOne);
         macaroon.addCaveat(thirdPartyCaveatTwo);
 
-        Macaroon dischargeMacaroonOne = new SimpleMacaroon(thirdPartyCaveatSecretKey, thirdPartyCaveatIdentifier, "");
+        Macaroon dischargeMacaroonOne = generateMacaroon(thirdPartyCaveatSecretKey, thirdPartyCaveatIdentifier, "");
         MockFirstPartyCaveat dischargeMacaroonFirstPartyCaveat = new MockFirstPartyCaveat(generateRandomStringOfLength(256).getBytes(StandardCharsets.UTF_8), true);
         dischargeMacaroonFirstPartyCaveat = (MockFirstPartyCaveat) dischargeMacaroonOne.addCaveat(dischargeMacaroonFirstPartyCaveat);
         macaroon.bindMacaroonForRequest(dischargeMacaroonOne);
@@ -252,7 +250,7 @@ public abstract class MacaroonTest {
     @DisplayName("Invalid discharge Macaroons should not be verified multiple times.")
     void testTwelve() throws Exception {
         String macaroonSecret = generateRandomStringOfLength(256);
-        Macaroon macaroon = new SimpleMacaroon(macaroonSecret, generateRandomStringOfLength(256).getBytes(StandardCharsets.UTF_8), generateRandomStringOfLength(256));
+        Macaroon macaroon = generateMacaroon(macaroonSecret, generateRandomStringOfLength(256).getBytes(StandardCharsets.UTF_8), generateRandomStringOfLength(256));
 
         String thirdPartyCaveatSecretKey = generateRandomStringOfLength(256);
         byte[] thirdPartyCaveatIdentifier = generateRandomStringOfLength(256).getBytes(StandardCharsets.UTF_8);
@@ -261,8 +259,8 @@ public abstract class MacaroonTest {
         macaroon.addCaveat(thirdPartyCaveatOne);
         macaroon.addCaveat(thirdPartyCaveatTwo);
 
-        Macaroon invalidDischargeMacaroon = new SimpleMacaroon(thirdPartyCaveatSecretKey, thirdPartyCaveatIdentifier, "");
-        Macaroon validDischargeMacaroon = new SimpleMacaroon(thirdPartyCaveatSecretKey, thirdPartyCaveatIdentifier, "");
+        Macaroon invalidDischargeMacaroon = generateMacaroon(thirdPartyCaveatSecretKey, thirdPartyCaveatIdentifier, "");
+        Macaroon validDischargeMacaroon = generateMacaroon(thirdPartyCaveatSecretKey, thirdPartyCaveatIdentifier, "");
         MockFirstPartyCaveat invalidDischargeMacaroonFirstPartyCaveat = new MockFirstPartyCaveat(generateRandomStringOfLength(256).getBytes(StandardCharsets.UTF_8), false);
         MockFirstPartyCaveat validDischargeMacaroonFirstPartyCaveat = new MockFirstPartyCaveat(generateRandomStringOfLength(256).getBytes(StandardCharsets.UTF_8), true);
         invalidDischargeMacaroonFirstPartyCaveat = (MockFirstPartyCaveat) invalidDischargeMacaroon.addCaveat(invalidDischargeMacaroonFirstPartyCaveat);
@@ -292,7 +290,7 @@ public abstract class MacaroonTest {
     @DisplayName("All verification contexts are returned after the verification process of a Macaroon.")
     void test13() throws Exception {
         String macaroonSecret = generateRandomStringOfLength(256);
-        Macaroon macaroon = new SimpleMacaroon(macaroonSecret, generateRandomStringOfLength(256).getBytes(StandardCharsets.UTF_8), generateRandomStringOfLength(256));
+        Macaroon macaroon = generateMacaroon(macaroonSecret, generateRandomStringOfLength(256).getBytes(StandardCharsets.UTF_8), generateRandomStringOfLength(256));
 
         String dischargeMacaroonSecret = generateRandomStringOfLength(256);
         String dischargeMacaroonIdentifier = generateRandomStringOfLength(256);
@@ -300,17 +298,17 @@ public abstract class MacaroonTest {
         macaroon.addCaveat(thirdPartyCaveat);
         macaroon.addCaveat(new RangeConstraintFirstPartyCaveat("TIME", 0L, 100L));
 
-        Macaroon validDischargeMacaroonOne = new SimpleMacaroon(dischargeMacaroonSecret, dischargeMacaroonIdentifier.getBytes(StandardCharsets.UTF_8), "");
+        Macaroon validDischargeMacaroonOne = generateMacaroon(dischargeMacaroonSecret, dischargeMacaroonIdentifier.getBytes(StandardCharsets.UTF_8), "");
         validDischargeMacaroonOne.addCaveat(new MembershipConstraintFirstPartyCaveat("ACCESS", new HashSet<>(Set.of("resourceOne"))));
         validDischargeMacaroonOne.addCaveat(new RangeConstraintFirstPartyCaveat("TIME", -100L, 0L));
         macaroon.bindMacaroonForRequest(validDischargeMacaroonOne);
 
-        Macaroon validDischargeMacaroonTwo = new SimpleMacaroon(dischargeMacaroonSecret, dischargeMacaroonIdentifier.getBytes(StandardCharsets.UTF_8), "");
+        Macaroon validDischargeMacaroonTwo = generateMacaroon(dischargeMacaroonSecret, dischargeMacaroonIdentifier.getBytes(StandardCharsets.UTF_8), "");
         validDischargeMacaroonTwo.addCaveat(new MembershipConstraintFirstPartyCaveat("ACCESS", new HashSet<>(Set.of("resourceTwo"))));
         validDischargeMacaroonTwo.addCaveat(new RangeConstraintFirstPartyCaveat("TIME", 100L, 200L));
         macaroon.bindMacaroonForRequest(validDischargeMacaroonTwo);
 
-        Macaroon invalidDischargeMacaroonThree = new SimpleMacaroon(dischargeMacaroonSecret, dischargeMacaroonIdentifier.getBytes(StandardCharsets.UTF_8), "");
+        Macaroon invalidDischargeMacaroonThree = generateMacaroon(dischargeMacaroonSecret, dischargeMacaroonIdentifier.getBytes(StandardCharsets.UTF_8), "");
         invalidDischargeMacaroonThree.addCaveat(new RangeConstraintFirstPartyCaveat("TIME", 200L, 300L));
         macaroon.bindMacaroonForRequest(invalidDischargeMacaroonThree);
 
@@ -351,6 +349,30 @@ public abstract class MacaroonTest {
         assertEquals(new HashSet<>(), verificationContext.getCopyOfMembershipConstraintUUIDs());
         assertEquals(new HashSet<>(), verificationContext.getCopyOfRangeConstraintUUIDs());
         assertEquals("VerificationContext{}", verificationContext.toString());
+    }
+
+    @Test
+    @DisplayName("The third-party caveats for specific target locations can be properly found.")
+    public void test15() throws Exception {
+        String locationOne = generateRandomStringOfLength(256);
+        String locationTwo = generateRandomStringOfLength(256);
+        String locationThree = generateRandomStringOfLength(256);
+
+        String secretKeyThirdPartyCaveatOne = generateRandomStringOfLength(256);
+        Macaroon macaroon = generateRandomMacaroon();
+        macaroon.addCaveat(new MembershipConstraintFirstPartyCaveat(generateRandomStringOfLength(256), new HashSet<>(Set.of(generateRandomStringOfLength(256)))));
+        ThirdPartyCaveat thirdPartyCaveatOne = new ThirdPartyCaveat(secretKeyThirdPartyCaveatOne, generateRandomStringOfLength(256).getBytes(StandardCharsets.UTF_8), Set.of(locationOne, locationTwo));
+        ThirdPartyCaveat thirdPartyCaveatTwo = new ThirdPartyCaveat(generateRandomStringOfLength(256), generateRandomStringOfLength(256).getBytes(StandardCharsets.UTF_8), Set.of(locationOne, locationTwo));
+        thirdPartyCaveatOne = macaroon.addCaveat(thirdPartyCaveatOne);
+        macaroon.addCaveat(thirdPartyCaveatTwo);
+
+        Macaroon dischargeMacaroonThirdPartyCaveatTwo = generateMacaroon(secretKeyThirdPartyCaveatOne, thirdPartyCaveatTwo.getCaveatIdentifier(), "");
+        macaroon.bindMacaroonForRequest(dischargeMacaroonThirdPartyCaveatTwo);
+
+        HashSet<String> possibleLocations = new HashSet<>(Set.of(locationTwo, locationThree));
+        HashSet<ThirdPartyCaveat> foundCaveats = macaroon.getAllNonDischargedThirdPartyCaveats(possibleLocations);
+        assertEquals(1, foundCaveats.size());
+        assertEquals(thirdPartyCaveatOne, foundCaveats.iterator().next());
     }
 
 
