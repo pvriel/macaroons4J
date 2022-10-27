@@ -76,4 +76,11 @@ public class MembershipConstraintFirstPartyCaveat extends FirstPartyCaveat {
         var extractedInfo = extractMembershipUUIDAndRequiredMembersFromCaveatIdentifier();
         return new MembershipConstraintFirstPartyCaveat(extractedInfo.getLeft(), new HashSet<>(extractedInfo.getRight()));
     }
+
+    @Override
+    @NotNull
+    public String toString() {
+        var extracted = extractMembershipUUIDAndRequiredMembersFromCaveatIdentifier();
+        return "MembershipConstraintFirstPartyCaveat{%s ∈ %s}".formatted(extracted.getLeft(), extracted.getRight());
+    }
 }

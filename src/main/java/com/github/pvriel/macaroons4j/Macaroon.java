@@ -438,4 +438,16 @@ public abstract class Macaroon implements Serializable {
         result = 31 * result + Arrays.hashCode(macaroonIdentifier);
         return result;
     }
+
+    @NotNull
+    @Override
+    public String toString() {
+        return "Macaroon{" +
+                "id=" + Arrays.toString(macaroonIdentifier) +
+                ", caveats=" + caveats +
+                ", signature='" + macaroonSignature + '\'' +
+                ", dischargeMacaroons=" + boundMacaroons +
+                ", hintsTargetLocations=" + hintsTargetLocations +
+                '}';
+    }
 }
