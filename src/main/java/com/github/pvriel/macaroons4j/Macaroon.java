@@ -280,18 +280,37 @@ public abstract class Macaroon implements Serializable {
      */
     @NotNull
     public HashSet<@NotNull VerificationContext> verify(@NotNull String secretKeyMacaroon, @NotNull VerificationContext verificationContext) {
+        return verify(secretKeyMacaroon, verificationContext, true);
+    }
+
+    /**
+     * Method to verify the Macaroon with a given secret key and an initial context.
+     * <br>This method is not thread-safe. No additional caveats / bound discharge Macaroons should be added in the meantime to this Macaroon instance.
+     * @param   secretKeyMacaroon
+     *          The secret key, which was used to initialize the Macaroon with.
+     * @param   verificationContext
+     *          An initial {@link VerificationContext}. The initial context can be used to further restrict the validity of the Macaroon during the verification process.
+     * @param   checkSignatures
+     *          Boolean to indicate if the signatures of the (discharge) Macaroon(s) should be checked (typically: true).
+     *          <br>Using false here allows the caller to inspect the specified constraints, without actually verifying the correctness of Macaroons.
+     * @return  A {@link HashSet} of contexts, which represents all the contexts in which the Macaroon instance is valid.
+     */
+    @NotNull
+    public HashSet<@NotNull VerificationContext> verify(@NotNull String secretKeyMacaroon, @NotNull VerificationContext verificationContext, boolean checkSignatures) {
         // The macaroons are not modified: just pass them to the verification methods.
         return verify(new LinkedList<>(List.of(MutableTriple.of(this, calculateMAC(secretKeyMacaroon, macaroonIdentifier), new ArrayList<>(caveats)))),
                 new HashSet<>(),
                 new HashSet<>(),
-                new HashSet<>(Set.of(verificationContext.clone())));
+                new HashSet<>(Set.of(verificationContext.clone())),
+                checkSignatures);
     }
 
     @NotNull
     private HashSet<VerificationContext> verify(@NotNull List<MutableTriple<Macaroon, String, List<Caveat>>> currentSignaturesWithRemainingCaveats,
                                                @NotNull Set<Macaroon> alreadyVerifiedDischargeMacaroons,
                                                @NotNull Set<Macaroon> invalidDischargeMacaroons,
-                                               @NotNull HashSet<VerificationContext> contexts) {
+                                               @NotNull HashSet<VerificationContext> contexts,
+                                                boolean checkSignatures) {
         while (!currentSignaturesWithRemainingCaveats.isEmpty()) {
             // It does not make sense to check the remaining caveats, if there are no remaining contexts in which they can be verified.
             if (contexts.isEmpty()) break;
@@ -304,6 +323,7 @@ public abstract class Macaroon implements Serializable {
 
             // A) Signature checking.
             if (remainingCaveatsCurrentMacaroon.isEmpty()) {
+                if (!checkSignatures) continue;
                 if (!(currentMacaroon == this && currentSignature.equals(macaroonSignature)) &&
                     !(bindSignatureForRequest(currentSignature).equals(currentMacaroon.macaroonSignature))) return new HashSet<>();
                 else currentSignaturesWithRemainingCaveats.remove(0);
@@ -317,7 +337,7 @@ public abstract class Macaroon implements Serializable {
                 contexts = verify((FirstPartyCaveat) caveat, contexts);
                 currentSignatureWithRemainingCaveats.setMiddle(calculateMAC(currentSignature, caveat.getCaveatIdentifier()));
             } else if (caveat instanceof ThirdPartyCaveat) return verify((ThirdPartyCaveat) caveat, currentSignaturesWithRemainingCaveats,
-                    alreadyVerifiedDischargeMacaroons, invalidDischargeMacaroons, contexts);
+                    alreadyVerifiedDischargeMacaroons, invalidDischargeMacaroons, contexts, checkSignatures);
             else return new HashSet<>(); // Unsupported caveat type.
         }
 
@@ -343,7 +363,8 @@ public abstract class Macaroon implements Serializable {
                                                @NotNull List<MutableTriple<Macaroon, String, List<Caveat>>> currentSignaturesWithRemainingCaveats,
                                                @NotNull Set<Macaroon> alreadyVerifiedDischargeMacaroons,
                                                @NotNull Set<Macaroon> invalidDischargeMacaroons,
-                                               @NotNull HashSet<VerificationContext> contexts) {
+                                               @NotNull HashSet<VerificationContext> contexts,
+                                                boolean checkSignatures) {
         /*
          * 1) Update the signature of the current Macaroon on the stack, which will be checked later on.
          * 2) Calculate the root key of the discharge Macaroon, which we will need to verify the signature of the discharge Macaroon.
@@ -364,7 +385,7 @@ public abstract class Macaroon implements Serializable {
         Set<Macaroon> correspondingDischargeMacaroons = boundMacaroons.getOrDefault(ByteBuffer.wrap(thirdPartyCaveat.getCaveatIdentifier()), new HashSet<>())
                 .stream().filter(macaroon -> !invalidDischargeMacaroons.contains(macaroon)).collect(Collectors.toSet());
         if (correspondingDischargeMacaroons.stream().anyMatch(alreadyVerifiedDischargeMacaroons::contains))
-            return verify(currentSignaturesWithRemainingCaveats, alreadyVerifiedDischargeMacaroons, invalidDischargeMacaroons, contexts); // Same caveat already verified; no need to restrict the contexts further.
+            return verify(currentSignaturesWithRemainingCaveats, alreadyVerifiedDischargeMacaroons, invalidDischargeMacaroons, contexts, checkSignatures); // Same caveat already verified; no need to restrict the contexts further.
         else if (correspondingDischargeMacaroons.isEmpty()) return new HashSet<>(); // Can't discharge the caveat anyways...
 
         HashSet<VerificationContext> returnValue = new HashSet<>();
@@ -389,7 +410,7 @@ public abstract class Macaroon implements Serializable {
             Set<Macaroon> tempInvalidDischargeMacaroons = new HashSet<>(invalidDischargeMacaroons);
             HashSet<VerificationContext> tempContexts = contexts.stream().map(VerificationContext::clone).collect(Collectors.toCollection(HashSet::new));
 
-            HashSet<VerificationContext> resultDischarging = verify(tempCurrentSignaturesWithRemainingCaveats, tempAlreadyVerifiedDischargeMacaroons, tempInvalidDischargeMacaroons, tempContexts);
+            HashSet<VerificationContext> resultDischarging = verify(tempCurrentSignaturesWithRemainingCaveats, tempAlreadyVerifiedDischargeMacaroons, tempInvalidDischargeMacaroons, tempContexts, checkSignatures);
             if (resultDischarging.isEmpty()) invalidDischargeMacaroons.add(dischargeMacaroon);
             else returnValue.addAll(resultDischarging);
         }
