@@ -423,7 +423,9 @@ public abstract class Macaroon implements Serializable {
      * Method to extract third-party caveats, that have not been discharged, for specific target locations.
      * @param   possibleDischargeLocations
      *          The locations for which the third-party caveats should be extracted.
-     * @return
+     *          <br>This method will only return third-party caveats, for which the intersection of possibleDischargeLocations
+     *          and the possible discharge locations for the caveat is not empty.
+     * @return  The third-party caveats that can be discharged by one of the given locations.
      */
     @NotNull
     public HashSet<@NotNull ThirdPartyCaveat> getAllNonDischargedThirdPartyCaveats(@NotNull Set<@NotNull String> possibleDischargeLocations) {
