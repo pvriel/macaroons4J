@@ -43,12 +43,12 @@ class RangeConstraintFirstPartyCaveatTest {
         VerificationContext contextTwo = initialContext.clone();
         RangeConstraintFirstPartyCaveat rangeConstraintFirstPartyCaveatTwo = new RangeConstraintFirstPartyCaveat(rangeUUID, -2, 0);
         assertDoesNotThrow(() -> rangeConstraintFirstPartyCaveatTwo.verify(emptyMacaroon, contextTwo));
-        assertEquals(Pair.of((long) -1, (long) 0), contextTwo.rangeConstraints.get(rangeUUID));
+        assertEquals(Pair.of((long) -1, (long) 0), contextTwo.getCopyOfRangeConstraints().get(rangeUUID));
 
         VerificationContext contextThree = initialContext.clone();
         RangeConstraintFirstPartyCaveat rangeConstraintFirstPartyCaveatThree = new RangeConstraintFirstPartyCaveat(rangeUUID, 0, 2);
         assertDoesNotThrow(() -> rangeConstraintFirstPartyCaveatThree.verify(emptyMacaroon, contextThree));
-        assertEquals(Pair.of((long) 0, (long) 1), contextThree.rangeConstraints.get(rangeUUID));
+        assertEquals(Pair.of((long) 0, (long) 1), contextThree.getCopyOfRangeConstraints().get(rangeUUID));
     }
 
     @Test

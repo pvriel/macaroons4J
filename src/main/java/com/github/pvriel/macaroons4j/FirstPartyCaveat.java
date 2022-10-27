@@ -27,4 +27,7 @@ public abstract class FirstPartyCaveat extends Caveat {
     public FirstPartyCaveat(byte[] caveatIdentifier) {
         super(caveatIdentifier);
     }
+
+    @Override
+    public abstract @NotNull FirstPartyCaveat clone();
 }

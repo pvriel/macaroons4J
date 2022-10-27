@@ -59,7 +59,7 @@ public class MembershipConstraintFirstPartyCaveat extends FirstPartyCaveat {
      * @return A pair, where the left element is the membership UUID and the right element is the set of required members.
      */
     public @NotNull Pair<@NotNull String, @NotNull Set<@NotNull String>> extractMembershipUUIDAndRequiredMembersFromCaveatIdentifier() {
-        String caveatIdentifierAsString = new String(caveatIdentifier, StandardCharsets.UTF_8);
+        String caveatIdentifierAsString = new String(getCaveatIdentifier(), StandardCharsets.UTF_8);
 
         Matcher matcher = regexPattern.matcher(caveatIdentifierAsString);
         if (!matcher.matches()) throw new IllegalStateException("The caveat identifier '" + caveatIdentifierAsString + "' does not match the expected format.");
@@ -69,5 +69,11 @@ public class MembershipConstraintFirstPartyCaveat extends FirstPartyCaveat {
         Set<String> requiredMembers = new HashSet<>(Arrays.asList(requiredMembersAsString.split(", ")));
 
         return Pair.of(membershipUUID, requiredMembers);
+    }
+
+    @Override
+    public @NotNull MembershipConstraintFirstPartyCaveat clone() {
+        var extractedInfo = extractMembershipUUIDAndRequiredMembersFromCaveatIdentifier();
+        return new MembershipConstraintFirstPartyCaveat(extractedInfo.getLeft(), new HashSet<>(extractedInfo.getRight()));
     }
 }

@@ -3,6 +3,7 @@ package com.github.pvriel.macaroons4j;
 import org.apache.commons.lang3.tuple.MutableTriple;
 import org.jetbrains.annotations.NotNull;
 
+import java.awt.desktop.AboutEvent;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.util.*;
@@ -18,24 +19,24 @@ public abstract class Macaroon implements Serializable {
     /**
      * Hints to the target locations that can verify this Macaroon.
      */
-    public final @NotNull HashSet<String> hintsTargetLocations;
+    private final @NotNull HashSet<@NotNull String> hintsTargetLocations;
     /**
      * The identifier of the Macaroon.
      */
-    public final byte[] macaroonIdentifier;
+    private final byte[] macaroonIdentifier;
     /**
      * The caveats of this Macaroon.
      */
-    public final @NotNull ArrayList<@NotNull Caveat> caveats;
+    private final @NotNull ArrayList<@NotNull Caveat> caveats;
 
     /**
      * The signature of the Macaroon.
      */
-    public @NotNull String macaroonSignature;
+    private @NotNull String macaroonSignature;
     /**
      * The discharge Macaroons that are bound to this Macaroon instance.
      */
-    public final @NotNull HashMap<ByteBuffer, @NotNull Set<@NotNull Macaroon>> boundMacaroons;
+    private final @NotNull HashMap<@NotNull ByteBuffer, @NotNull HashSet<@NotNull Macaroon>> boundMacaroons;
 
     /**
      * Method to generate a MAC value.
@@ -91,7 +92,7 @@ public abstract class Macaroon implements Serializable {
      * @param   hintTargetLocation
      *          A hint to the target location (which typically issues the Macaroon instance).
      */
-    public Macaroon(@NotNull String secretString, byte[] macaroonIdentifier, @NotNull String hintTargetLocation) {
+    public Macaroon(@NotNull String secretString, final byte[] macaroonIdentifier, @NotNull String hintTargetLocation) {
         this(secretString, macaroonIdentifier, Set.of(hintTargetLocation));
     }
 
@@ -104,7 +105,7 @@ public abstract class Macaroon implements Serializable {
      * @param   hintsTargetLocations
      *          Hints to the target locations (which typically issue the Macaroon instance).
      */
-    public Macaroon(@NotNull String secretString, byte[] macaroonIdentifier, @NotNull Set<String> hintsTargetLocations) {
+    public Macaroon(@NotNull String secretString, final byte[] macaroonIdentifier, @NotNull Set<String> hintsTargetLocations) {
         this(hintsTargetLocations, macaroonIdentifier, new LinkedList<>(), "", new HashMap<>()); // "": temporary value
         this.macaroonSignature = calculateMAC(secretString, macaroonIdentifier);
     }
@@ -128,45 +129,116 @@ public abstract class Macaroon implements Serializable {
         this.macaroonIdentifier = macaroonIdentifier;
         this.caveats = new ArrayList<>(caveats);
         this.macaroonSignature = macaroonSignature;
-        this.boundMacaroons = new HashMap<>(boundMacaroons);
+
+        this.boundMacaroons = new HashMap<>();
+        for (var entry : boundMacaroons.entrySet()) {
+            var macaroons = this.boundMacaroons.put(entry.getKey(), new HashSet<>());
+            for (var macaroon : entry.getValue()) {
+                assert macaroons != null;
+                macaroons.add(macaroon.clone());
+            }
+        }
     }
 
-    private void addCaveat(@NotNull Caveat caveat, byte[] toMac) {
+    /**
+     * Method to get a copy of the hints to the target locations.
+     * @return  A copy of the hints to the target locations.
+     */
+    @NotNull
+    public HashSet<@NotNull String> getCopyOfHintsTargetLocations() {
+        return new HashSet<>(hintsTargetLocations);
+    }
+
+    /**
+     * Method to get the Macaroon identifier.
+     * @return  The Macaroon identifier.
+     */
+    public byte[] getMacaroonIdentifier() {
+        return macaroonIdentifier;
+    }
+
+    /**
+     * Method to get a copy of the caveats.
+     * @return  The copy of the caveats.
+     */
+    @NotNull
+    public ArrayList<@NotNull Caveat> getCopyOfCaveats() {
+        return new ArrayList<>(caveats);
+    }
+
+    /**
+     * Method to get the signature of the Macaroon.
+     * @return  The signature of the Macaroon.
+     */
+    @NotNull
+    public String getMacaroonSignature() {
+        return macaroonSignature;
+    }
+
+    protected void setMacaroonSignature(@NotNull String signature) {
+        macaroonSignature = signature;
+    }
+
+    /**
+     * Method to get a copy of the bound discharge Macaroons.
+     * @return  The bound discharge Macaroons.
+     */
+    @NotNull
+    public HashMap<@NotNull ByteBuffer, @NotNull Set<@NotNull Macaroon>> getCopyOfBoundMacaroons() {
+        HashMap<ByteBuffer, Set<Macaroon>> returnValue = new HashMap<>();
+        for (var entry : boundMacaroons.entrySet()) {
+            var macaroons = returnValue.put(entry.getKey(), new HashSet<>());
+            for (var macaroon : entry.getValue()) {
+                assert macaroons != null;
+                macaroons.add(macaroon.clone());
+            }
+        }
+        return returnValue;
+    }
+
+    @NotNull
+    private <CaveatType extends Caveat> CaveatType addCaveat(@NotNull CaveatType caveat, final byte[] toMac) {
         this.caveats.add(caveat);
-        this.macaroonSignature = calculateMAC(this.macaroonSignature, toMac);
+        setMacaroonSignature(calculateMAC(getMacaroonSignature(), toMac));
+        return caveat;
     }
 
     /**
      * Method to add a first-party caveat to, and update the signature of the Macaroon instance.
-     * After calling this method, the given {@link FirstPartyCaveat} instance is owned by this Macaroon instance.
-     * <br>This also means that a caveat can NOT be added multiple times to the Macaroon.
-     * Instead, each time, a new Macaroon instance should be generated.
+     * <br>This method is not thread-safe.
      * @param   caveat
      *          The {@link FirstPartyCaveat} to add to the Macaroon instance.
+     * @return  A first-party caveat, which is a copy of the caveat parameter, which has been added to the Macaroon instance.
      */
-    public void addCaveat(@NotNull FirstPartyCaveat caveat) {
-        addCaveat(caveat, caveat.caveatIdentifier);
+    @NotNull
+    public FirstPartyCaveat addCaveat(@NotNull FirstPartyCaveat caveat) {
+        return addCaveat(caveat.clone(), caveat.getCaveatIdentifier());
     }
 
     /**
      * Method to add a third-party caveat to, and update the signature of the Macaroon instance.
-     * After calling this method, the given {@link ThirdPartyCaveat} instance is owned by this Macaroon instance.
+     * <br>A copy of the third-party caveat is made, before its root key is replaced with the verification key.
+     * <br>This method is not thread-safe.
      * @param   caveat
      *          The {@link ThirdPartyCaveat} to add to the Macaroon instance.
      * @throws  Exception
      *          If the third-party caveat can not be added to the Macaroon instance.
+     * @return  A third-party caveat, which is a copy of the caveat parameter, which has been added to the Macaroon instance.
      */
-    public void addCaveat(@NotNull ThirdPartyCaveat caveat) throws Exception {
+    @NotNull
+    public ThirdPartyCaveat addCaveat(@NotNull ThirdPartyCaveat caveat) throws Exception {
+        caveat = caveat.clone();
         caveat.setCaveatRootOrVerificationKey(encrypt(this.macaroonSignature, caveat.getCaveatRootOrVerificationKey()));
         byte[] toMAC = calculateVldCldConcatenationThirdPartyCaveat(caveat);
-        addCaveat(caveat, toMAC);
+        return addCaveat(caveat, toMAC);
     }
 
     /**
      * Method to bind a discharge Macaroon to this Macaroon instance, as preparation for a request.
-     * After calling this method, the given discharge Macaroon is owned by this Macaroon instance.
+     * <br>At the beginning of the invocation, the dischargeMacaroon is copied.
+     * <br>This method is not thread-safe.
      * @param   dischargeMacaroon
-     *          Another Macaroon instance, which will be bound to this Macaroon instance.
+     *          Another Macaroon instance, of which an adjusted copy will be bound to this Macaroon instance.
      * @throws  IllegalArgumentException
      *          If the discharge Macaroons has bound discharge Macaroons; these should be bound to this Macaroon instance instead.
      */
@@ -174,7 +246,7 @@ public abstract class Macaroon implements Serializable {
         if (!dischargeMacaroon.boundMacaroons.isEmpty()) {
             throw new IllegalArgumentException("Discharge Macaroon has bound discharge Macaroons; these should be bound to this Macaroon instance instead.");
         }
-
+        dischargeMacaroon = dischargeMacaroon.clone();
         dischargeMacaroon.macaroonSignature = bindSignatureForRequest(dischargeMacaroon.macaroonSignature);
 
         if (!boundMacaroons.containsKey(ByteBuffer.wrap(dischargeMacaroon.macaroonIdentifier))) {
@@ -186,14 +258,15 @@ public abstract class Macaroon implements Serializable {
 
     private byte[] calculateVldCldConcatenationThirdPartyCaveat(@NotNull ThirdPartyCaveat caveat) {
         // No cache mechanism here; I don't think it would improve the performance of this method?
-        byte[] toMAC = new byte[caveat.getCaveatRootOrVerificationKey().length + caveat.caveatIdentifier.length];
+        byte[] toMAC = new byte[caveat.getCaveatRootOrVerificationKey().length + caveat.getCaveatIdentifier().length];
         System.arraycopy(caveat.getCaveatRootOrVerificationKey(), 0, toMAC, 0, caveat.getCaveatRootOrVerificationKey().length);
-        System.arraycopy(caveat.caveatIdentifier, 0, toMAC, caveat.getCaveatRootOrVerificationKey().length, caveat.caveatIdentifier.length);
+        System.arraycopy(caveat.getCaveatIdentifier(), 0, toMAC, caveat.getCaveatRootOrVerificationKey().length, caveat.getCaveatIdentifier().length);
         return toMAC;
     }
 
     /**
      * Method to verify the Macaroon with a given secret key and an initial context.
+     * <br>This method is not thread-safe. No additional caveats / bound discharge Macaroons should be added in the meantime to this Macaroon instance.
      * @param   secretKeyMacaroon
      *          The secret key, which was used to initialize the Macaroon with.
      * @param   verificationContext
@@ -201,7 +274,8 @@ public abstract class Macaroon implements Serializable {
      * @return  A {@link HashSet} of contexts, which represents all the contexts in which the Macaroon instance is valid.
      */
     @NotNull
-    public HashSet<VerificationContext> verify(@NotNull String secretKeyMacaroon, @NotNull VerificationContext verificationContext) {
+    public HashSet<@NotNull VerificationContext> verify(@NotNull String secretKeyMacaroon, @NotNull VerificationContext verificationContext) {
+        // The macaroons are not modified: just pass them to the verification methods.
         return verify(new LinkedList<>(List.of(MutableTriple.of(this, calculateMAC(secretKeyMacaroon, macaroonIdentifier), new ArrayList<>(caveats)))),
                 new HashSet<>(),
                 new HashSet<>(),
@@ -236,7 +310,7 @@ public abstract class Macaroon implements Serializable {
             if (caveat instanceof FirstPartyCaveat) {
                 // No need for recursive programming here; we can simply filter the contexts and update the signature for A) .
                 contexts = verify((FirstPartyCaveat) caveat, contexts);
-                currentSignatureWithRemainingCaveats.setMiddle(calculateMAC(currentSignature, caveat.caveatIdentifier));
+                currentSignatureWithRemainingCaveats.setMiddle(calculateMAC(currentSignature, caveat.getCaveatIdentifier()));
             } else if (caveat instanceof ThirdPartyCaveat) return verify((ThirdPartyCaveat) caveat, currentSignaturesWithRemainingCaveats,
                     alreadyVerifiedDischargeMacaroons, invalidDischargeMacaroons, contexts);
             else return new HashSet<>(); // Unsupported caveat type.
@@ -282,7 +356,7 @@ public abstract class Macaroon implements Serializable {
         Get the discharge Macaroons that can be used to discharge the third-party caveat.
         Already filter the ones of which we know that they'll result in invalid contexts (due to previous discharge tryouts).
          */
-        Set<Macaroon> correspondingDischargeMacaroons = boundMacaroons.getOrDefault(ByteBuffer.wrap(thirdPartyCaveat.caveatIdentifier), Set.of())
+        Set<Macaroon> correspondingDischargeMacaroons = boundMacaroons.getOrDefault(ByteBuffer.wrap(thirdPartyCaveat.getCaveatIdentifier()), new HashSet<>())
                 .stream().filter(macaroon -> !invalidDischargeMacaroons.contains(macaroon)).collect(Collectors.toSet());
         if (correspondingDischargeMacaroons.stream().anyMatch(alreadyVerifiedDischargeMacaroons::contains))
             return verify(currentSignaturesWithRemainingCaveats, alreadyVerifiedDischargeMacaroons, invalidDischargeMacaroons, contexts); // Same caveat already verified; no need to restrict the contexts further.

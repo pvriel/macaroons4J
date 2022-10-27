@@ -1,5 +1,7 @@
 package com.github.pvriel.macaroons4j;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.io.Serializable;
 import java.util.Arrays;
 
@@ -12,7 +14,7 @@ public abstract class Caveat implements Serializable {
     /**
      * The identifier of the caveat.
      */
-    public final byte[] caveatIdentifier;
+    private final byte[] caveatIdentifier;
 
     /**
      * Constructor of the {@link Caveat} class.
@@ -21,6 +23,14 @@ public abstract class Caveat implements Serializable {
      */
     protected Caveat(byte[] caveatIdentifier) {
         this.caveatIdentifier = caveatIdentifier;
+    }
+
+    /**
+     * Getter for the caveat identifier.
+     * @return  The caveat identifier.
+     */
+    public byte[] getCaveatIdentifier() {
+        return caveatIdentifier;
     }
 
     @Override
@@ -35,4 +45,14 @@ public abstract class Caveat implements Serializable {
     public int hashCode() {
         return Arrays.hashCode(caveatIdentifier);
     }
+
+    @Override
+    public String toString() {
+        return "Caveat{" +
+                "caveatIdentifier=" + Arrays.toString(caveatIdentifier) +
+                '}';
+    }
+
+    @NotNull
+    public abstract Caveat clone();
 }

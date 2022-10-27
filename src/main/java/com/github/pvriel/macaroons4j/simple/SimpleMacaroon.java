@@ -41,7 +41,7 @@ public class SimpleMacaroon extends Macaroon {
      * @param   hintTargetLocation
      *          A hint to the target location (which typically issues the Macaroon instance).
      */
-    public SimpleMacaroon(@NotNull String secretString, byte[] macaroonIdentifier, @NotNull String hintTargetLocation) {
+    public SimpleMacaroon(@NotNull String secretString, final byte[] macaroonIdentifier, @NotNull String hintTargetLocation) {
         this(secretString, macaroonIdentifier, Set.of(hintTargetLocation));
     }
 
@@ -54,7 +54,8 @@ public class SimpleMacaroon extends Macaroon {
      * @param   hintsTargetLocations
      *          Hints to the target locations (which typically issue the Macaroon instance).
      */
-    public SimpleMacaroon(@NotNull String secretString, byte[] macaroonIdentifier, @NotNull Set<@NotNull String> hintsTargetLocations) {
+    public SimpleMacaroon(@NotNull String secretString, final byte[] macaroonIdentifier, @NotNull Set<@NotNull String> hintsTargetLocations) {
+        // A copy of hintsTargetLocations is made in the super constructor, so this is safe ;)
         super(secretString, macaroonIdentifier, hintsTargetLocations);
     }
 
@@ -71,8 +72,9 @@ public class SimpleMacaroon extends Macaroon {
      * @param   boundMacaroons
      *          A set of bound Macaroons, which are attached to the Macaroon instance.
      */
-    private SimpleMacaroon(@NotNull Set<String> hintsTargetLocations, byte[] macaroonIdentifier, @NotNull List<@NotNull Caveat> caveats,
+    private SimpleMacaroon(@NotNull Set<String> hintsTargetLocations, final byte[] macaroonIdentifier, @NotNull List<@NotNull Caveat> caveats,
                            @NotNull String macaroonSignature, @NotNull Map<ByteBuffer, @NotNull Set<@NotNull Macaroon>> boundMacaroons) {
+        // Necessary copies of the arguments are made in the super constructor, so this is safe ;)
         super(hintsTargetLocations, macaroonIdentifier, caveats, macaroonSignature, boundMacaroons);
     }
 
@@ -80,7 +82,7 @@ public class SimpleMacaroon extends Macaroon {
 
     @Override
     public @NotNull Macaroon clone() {
-        return new SimpleMacaroon(hintsTargetLocations, macaroonIdentifier, caveats, macaroonSignature, boundMacaroons);
+        return new SimpleMacaroon(getCopyOfHintsTargetLocations(), getMacaroonIdentifier(), getCopyOfCaveats(), getMacaroonSignature(), getCopyOfBoundMacaroons());
     }
 
     @Override

@@ -4,6 +4,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.charset.StandardCharsets;
+import java.util.HashSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -19,7 +20,7 @@ public class RangeConstraintFirstPartyCaveat extends FirstPartyCaveat {
     private final static @NotNull Pattern regexPattern = Pattern.compile("(.*) ∈ \\[(.*), (.*)]");
 
     /**
-     * Constructor for the {@link RangeConstraintFirstPartyCaveat} instance.
+     * Constructor for the {@link RangeConstraintFirstPartyCaveat} class.
      * @param   rangeUUID
      *          The UUID of the range constraint.
      * @param   lowerBound
@@ -35,6 +36,19 @@ public class RangeConstraintFirstPartyCaveat extends FirstPartyCaveat {
         if (upperBound < lowerBound) throw new IllegalArgumentException("The given lower bound is greater than the given upper bound.");
     }
 
+    /**
+     * Constructor for the {@link RangeConstraintFirstPartyCaveat} class.
+     * @param   rangeUUID
+     *          The UUID of the range constraint.
+     * @param   constraint
+     *          The constraint.
+     * @throws  IllegalArgumentException
+     *          If an invalid range (upper bound lower than lower bound) is given.
+     */
+    public RangeConstraintFirstPartyCaveat(@NotNull String rangeUUID, @NotNull Pair<@NotNull Long, @NotNull Long> constraint)
+        throws IllegalArgumentException {
+        this(rangeUUID, constraint.getLeft(), constraint.getRight());
+    }
     /**
      * @throws  IllegalStateException
      *          If the range defined by this range constraint does not overlap the range (for the same range UUID)
@@ -54,7 +68,7 @@ public class RangeConstraintFirstPartyCaveat extends FirstPartyCaveat {
      * @return  A pair of the range UUID and the range.
      */
     public @NotNull Pair<@NotNull String, @NotNull Pair<@NotNull Long, @NotNull Long>> extractRangeUUIDAndBoundsFromCaveatIdentifier() {
-        String caveatIdentifierAsString = new String(caveatIdentifier, StandardCharsets.UTF_8);
+        String caveatIdentifierAsString = new String(getCaveatIdentifier(), StandardCharsets.UTF_8);
 
         Matcher matcher = regexPattern.matcher(caveatIdentifierAsString);
         if (!matcher.matches()) throw new IllegalStateException("The caveat identifier '" + caveatIdentifierAsString + "' does not match the expected format.");
@@ -65,6 +79,12 @@ public class RangeConstraintFirstPartyCaveat extends FirstPartyCaveat {
         long upperBound = Long.parseLong(upperBoundAsString);
 
         return Pair.of(rangeUUID, Pair.of(lowerBound, upperBound));
+    }
+
+    @Override
+    public @NotNull RangeConstraintFirstPartyCaveat clone() {
+        var extractedInfo = extractRangeUUIDAndBoundsFromCaveatIdentifier();
+        return new RangeConstraintFirstPartyCaveat(extractedInfo.getKey(), extractedInfo.getValue());
     }
 
     private static byte[] generateCaveatIdentifier(@NotNull String rangeUUID, long lowerBound, long upperBound) {

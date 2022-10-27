@@ -1,15 +1,14 @@
 package com.github.pvriel.macaroons4j;
 
 import com.github.pvriel.macaroons4j.simple.SimpleMacaroon;
+import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
-import java.util.HashSet;
-import java.util.Random;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -161,7 +160,7 @@ public abstract class MacaroonTest {
         byte[] macaroonIdentifier = generateRandomStringOfLength(256).getBytes(StandardCharsets.UTF_8);
         String macaroonSecret = generateRandomStringOfLength(256);
         Macaroon macaroon = new SimpleMacaroon(macaroonSecret, macaroonIdentifier, hintTargetLocation);
-        macaroon.macaroonSignature = generateRandomStringOfLength(256);
+        macaroon.setMacaroonSignature(generateRandomStringOfLength(256));
 
         HashSet<VerificationContext> validContexts = macaroon.verify(macaroonSecret, new VerificationContext());
         assertEquals(0, validContexts.size());
@@ -195,6 +194,11 @@ public abstract class MacaroonTest {
 
             protected AlteringValidityFirstPartyCaveat(byte[] caveatIdentifier) {
                 super(caveatIdentifier);
+            }
+
+            @Override
+            public @NotNull FirstPartyCaveat clone() {
+                return new AlteringValidityFirstPartyCaveat(getCaveatIdentifier());
             }
 
             @Override
@@ -235,7 +239,7 @@ public abstract class MacaroonTest {
 
         Macaroon dischargeMacaroonOne = new SimpleMacaroon(thirdPartyCaveatSecretKey, thirdPartyCaveatIdentifier, "");
         MockFirstPartyCaveat dischargeMacaroonFirstPartyCaveat = new MockFirstPartyCaveat(generateRandomStringOfLength(256).getBytes(StandardCharsets.UTF_8), true);
-        dischargeMacaroonOne.addCaveat(dischargeMacaroonFirstPartyCaveat);
+        dischargeMacaroonFirstPartyCaveat = (MockFirstPartyCaveat) dischargeMacaroonOne.addCaveat(dischargeMacaroonFirstPartyCaveat);
         macaroon.bindMacaroonForRequest(dischargeMacaroonOne);
 
         HashSet<VerificationContext> results = macaroon.verify(macaroonSecret, new VerificationContext());
@@ -261,8 +265,8 @@ public abstract class MacaroonTest {
         Macaroon validDischargeMacaroon = new SimpleMacaroon(thirdPartyCaveatSecretKey, thirdPartyCaveatIdentifier, "");
         MockFirstPartyCaveat invalidDischargeMacaroonFirstPartyCaveat = new MockFirstPartyCaveat(generateRandomStringOfLength(256).getBytes(StandardCharsets.UTF_8), false);
         MockFirstPartyCaveat validDischargeMacaroonFirstPartyCaveat = new MockFirstPartyCaveat(generateRandomStringOfLength(256).getBytes(StandardCharsets.UTF_8), true);
-        invalidDischargeMacaroon.addCaveat(invalidDischargeMacaroonFirstPartyCaveat);
-        validDischargeMacaroon.addCaveat(validDischargeMacaroonFirstPartyCaveat);
+        invalidDischargeMacaroonFirstPartyCaveat = (MockFirstPartyCaveat) invalidDischargeMacaroon.addCaveat(invalidDischargeMacaroonFirstPartyCaveat);
+        validDischargeMacaroonFirstPartyCaveat = (MockFirstPartyCaveat) validDischargeMacaroon.addCaveat(validDischargeMacaroonFirstPartyCaveat);
         validDischargeMacaroon.addCaveat(new MockThirdPartyCaveat(thirdPartyCaveatSecretKey, thirdPartyCaveatIdentifier));
         macaroon.bindMacaroonForRequest(invalidDischargeMacaroon);
         macaroon.bindMacaroonForRequest(validDischargeMacaroon);
@@ -319,7 +323,34 @@ public abstract class MacaroonTest {
         HashSet<VerificationContext> expectedResults = new HashSet<>(Set.of(expectedResultOne, expectedResultTwo));
         HashSet<VerificationContext> results = macaroon.verify(macaroonSecret, new VerificationContext());
         assertEquals(expectedResults, results);
+    }
 
+    @Test
+    @DisplayName("The delete / constraint copy methods work properly.")
+    void test14() {
+        VerificationContext verificationContext = new VerificationContext();
+        verificationContext.addMembershipConstraint("ACCESS", Set.of("resourceOne"));
+        verificationContext.addRangeConstraint("TIME", 0L, 0L);
+
+        assertEquals(new HashMap<>(Map.of("ACCESS", Set.of("resourceOne"))), verificationContext.getCopyOfMembershipConstraints());
+        assertEquals(new HashMap<>(Map.of("TIME", Pair.of(0L, 0L))), verificationContext.getCopyOfRangeConstraints());
+        assertEquals(new HashSet<>(Set.of("ACCESS")), verificationContext.getCopyOfMembershipConstraintUUIDs());
+        assertEquals(new HashSet<>(Set.of("TIME")), verificationContext.getCopyOfRangeConstraintUUIDs());
+        assertEquals("VerificationContext{TIME ∈ [0, 0], ACCESS ∈ [resourceOne]}", verificationContext.toString());
+
+        verificationContext.removeMembershipConstraint("ACCESS");
+        assertEquals(new HashMap<>(), verificationContext.getCopyOfMembershipConstraints());
+        assertEquals(new HashMap<>(Map.of("TIME", Pair.of(0L, 0L))), verificationContext.getCopyOfRangeConstraints());
+        assertEquals(new HashSet<>(), verificationContext.getCopyOfMembershipConstraintUUIDs());
+        assertEquals(new HashSet<>(Set.of("TIME")), verificationContext.getCopyOfRangeConstraintUUIDs());
+        assertEquals("VerificationContext{TIME ∈ [0, 0]}", verificationContext.toString());
+
+        verificationContext.removeRangeConstraint("TIME");
+        assertEquals(new HashMap<>(), verificationContext.getCopyOfMembershipConstraints());
+        assertEquals(new HashMap<>(), verificationContext.getCopyOfRangeConstraints());
+        assertEquals(new HashSet<>(), verificationContext.getCopyOfMembershipConstraintUUIDs());
+        assertEquals(new HashSet<>(), verificationContext.getCopyOfRangeConstraintUUIDs());
+        assertEquals("VerificationContext{}", verificationContext.toString());
     }
 
     static String generateRandomStringOfLength(int length) {
@@ -343,6 +374,11 @@ public abstract class MacaroonTest {
         public void verify(@NotNull Macaroon macaroon, @NotNull VerificationContext context) throws IllegalStateException {
             amountOfVerifications ++;
             if (!shouldVerify) throw new IllegalStateException("shouldVerify of caveat (%s) is set to false.".formatted(this));
+        }
+
+        @Override
+        public @NotNull FirstPartyCaveat clone() {
+            return new MockFirstPartyCaveat(getCaveatIdentifier(), shouldVerify);
         }
     }
 
