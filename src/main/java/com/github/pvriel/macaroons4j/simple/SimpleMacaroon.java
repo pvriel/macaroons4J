@@ -80,6 +80,31 @@ public class SimpleMacaroon extends Macaroon {
      * Method to wrap a verification context into a Macaroon instance, representing the same constraints.
      * @param   verificationContext
      *          The {@link VerificationContext} instance to wrap.
+     * @param   secretKey
+     *          The secret key of the Macaroon.
+     * @param   identifier
+     *          The identifier of the Macaroon.
+     * @param   hintTargetLocations
+     *          The hints to the target locations of the Macaroon.
+     * @return  A {@link Pair}, containing the secret key and the Macaroon wrapping the context.
+     */
+    @NotNull
+    public static Pair<@NotNull String, @NotNull SimpleMacaroon> wrap(@NotNull VerificationContext verificationContext,
+                                                                      @NotNull String secretKey,
+                                                                      final byte[] identifier,
+                                                                      @NotNull Set<@NotNull String> hintTargetLocations) {
+        SimpleMacaroon macaroon = new SimpleMacaroon(secretKey, identifier, hintTargetLocations);
+        for (var membershipConstraint : verificationContext.getCopyOfMembershipConstraints().entrySet())
+            macaroon.addCaveat(new MembershipConstraintFirstPartyCaveat(membershipConstraint.getKey(), new HashSet<>(membershipConstraint.getValue())));
+        for (var rangeConstraint : verificationContext.getCopyOfRangeConstraints().entrySet())
+            macaroon.addCaveat(new RangeConstraintFirstPartyCaveat(rangeConstraint.getKey(), rangeConstraint.getValue().getLeft(), rangeConstraint.getValue().getRight()));
+        return Pair.of(secretKey, macaroon);
+    }
+
+    /**
+     * Method to wrap a verification context into a Macaroon instance, representing the same constraints.
+     * @param   verificationContext
+     *          The {@link VerificationContext} instance to wrap.
      * @param   lengthSecretKey
      *          The length of the secret key of the Macaroon. The secret key will be randomly generated.
      * @param   lengthIdentifier
@@ -90,17 +115,13 @@ public class SimpleMacaroon extends Macaroon {
      */
     @NotNull
     public static Pair<@NotNull String, @NotNull SimpleMacaroon> wrap(@NotNull VerificationContext verificationContext,
-                                                                      int lengthSecretKey,
-                                                                      int lengthIdentifier,
-                                                                      @NotNull Set<@NotNull String> hintTargetLocations) {
-        String secretKey = StringUtils.generateRandomStringOfLength(lengthSecretKey);
-        SimpleMacaroon macaroon = new SimpleMacaroon(secretKey, StringUtils.generateRandomStringOfLength(lengthIdentifier).getBytes(StandardCharsets.UTF_8), hintTargetLocations);
-        for (var membershipConstraint : verificationContext.getCopyOfMembershipConstraints().entrySet())
-            macaroon.addCaveat(new MembershipConstraintFirstPartyCaveat(membershipConstraint.getKey(), new HashSet<>(membershipConstraint.getValue())));
-        for (var rangeConstraint : verificationContext.getCopyOfRangeConstraints().entrySet())
-            macaroon.addCaveat(new RangeConstraintFirstPartyCaveat(rangeConstraint.getKey(), rangeConstraint.getValue().getLeft(), rangeConstraint.getValue().getRight()));
-        return Pair.of(secretKey, macaroon);
+                                                                        int lengthSecretKey,
+                                                                        int lengthIdentifier,
+                                                                        @NotNull Set<@NotNull String> hintTargetLocations) {
+        return wrap(verificationContext, StringUtils.generateRandomStringOfLength(lengthSecretKey),
+                StringUtils.generateRandomStringOfLength(lengthIdentifier).getBytes(StandardCharsets.UTF_8), hintTargetLocations);
     }
+
 
     @Override
     public @NotNull Macaroon clone() {
