@@ -86,10 +86,10 @@ public class SimpleMacaroon extends Macaroon {
      *          The identifier of the Macaroon.
      * @param   hintTargetLocations
      *          The hints to the target locations of the Macaroon.
-     * @return  A {@link Pair}, containing the secret key and the Macaroon wrapping the context.
+     * @return  The SimpleMacaroon, wrapping the verification context.
      */
     @NotNull
-    public static Pair<@NotNull String, @NotNull SimpleMacaroon> wrap(@NotNull VerificationContext verificationContext,
+    public static SimpleMacaroon wrap(@NotNull VerificationContext verificationContext,
                                                                       @NotNull String secretKey,
                                                                       final byte[] identifier,
                                                                       @NotNull Set<@NotNull String> hintTargetLocations) {
@@ -98,7 +98,7 @@ public class SimpleMacaroon extends Macaroon {
             macaroon.addCaveat(new MembershipConstraintFirstPartyCaveat(membershipConstraint.getKey(), new HashSet<>(membershipConstraint.getValue())));
         for (var rangeConstraint : verificationContext.getCopyOfRangeConstraints().entrySet())
             macaroon.addCaveat(new RangeConstraintFirstPartyCaveat(rangeConstraint.getKey(), rangeConstraint.getValue().getLeft(), rangeConstraint.getValue().getRight()));
-        return Pair.of(secretKey, macaroon);
+        return macaroon;
     }
 
     /**
@@ -118,8 +118,9 @@ public class SimpleMacaroon extends Macaroon {
                                                                         int lengthSecretKey,
                                                                         int lengthIdentifier,
                                                                         @NotNull Set<@NotNull String> hintTargetLocations) {
-        return wrap(verificationContext, StringUtils.generateRandomStringOfLength(lengthSecretKey),
-                StringUtils.generateRandomStringOfLength(lengthIdentifier).getBytes(StandardCharsets.UTF_8), hintTargetLocations);
+        String secretKey = StringUtils.generateRandomStringOfLength(256);
+        return Pair.of(secretKey, wrap(verificationContext, secretKey,
+                StringUtils.generateRandomStringOfLength(lengthIdentifier).getBytes(StandardCharsets.UTF_8), hintTargetLocations));
     }
 
 
