@@ -3,7 +3,6 @@ package com.github.pvriel.macaroons4j;
 import org.apache.commons.lang3.tuple.MutableTriple;
 import org.jetbrains.annotations.NotNull;
 
-import java.awt.desktop.AboutEvent;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
