@@ -88,7 +88,7 @@ public class RangeConstraintFirstPartyCaveat extends FirstPartyCaveat {
     }
 
     private static byte[] generateCaveatIdentifier(@NotNull String rangeUUID, long lowerBound, long upperBound) {
-        return (rangeUUID + " ∈ [" + lowerBound + ", " + upperBound + "]").getBytes();
+        return (rangeUUID + " ∈ [" + lowerBound + ", " + upperBound + "]").getBytes(StandardCharsets.UTF_8);
     }
 
     @Override
