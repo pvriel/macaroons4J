@@ -428,6 +428,20 @@ public abstract class Macaroon implements Serializable {
      */
     @NotNull
     public HashSet<@NotNull ThirdPartyCaveat> getAllNonDischargedThirdPartyCaveats(@NotNull Set<@NotNull String> possibleDischargeLocations) {
+        return getAllNonDischargedThirdPartyCaveats(Optional.of(possibleDischargeLocations));
+    }
+
+    /**
+     * Method to extract third-party caveats that have not been discharged.
+     * @return  The third-party caveats that still need to be discharged for this Macaroon.
+     */
+    @NotNull
+    public HashSet<@NotNull ThirdPartyCaveat> getAllNonDischargedThirdPartyCaveats() {
+        return getAllNonDischargedThirdPartyCaveats(Optional.empty());
+    }
+
+    @NotNull
+    private HashSet<@NotNull ThirdPartyCaveat> getAllNonDischargedThirdPartyCaveats(@NotNull Optional<Set<String>> optionalAllowedDischargeLocations) {
         // 1. Collect all caveats.
         Set<Caveat> allCaveats = new HashSet<>(caveats);
         boundMacaroons.entrySet().stream().flatMap(byteBufferHashSetEntry -> byteBufferHashSetEntry.getValue().stream())
@@ -440,10 +454,12 @@ public abstract class Macaroon implements Serializable {
                     // Only third-party caveats.
                     if (!(caveat instanceof ThirdPartyCaveat)) return false;
 
-                    // Only caveats that correspond to the given locations.
-                    HashSet<String> definedLocations = ((ThirdPartyCaveat) caveat).getCopyOfLocations();
-                    definedLocations.retainAll(possibleDischargeLocations);
-                    if (definedLocations.isEmpty()) return false;
+                    // Only caveats that correspond to the given locations (if some locations are given in the first place).
+                    if (optionalAllowedDischargeLocations.isPresent()) {
+                        HashSet<String> definedLocations = ((ThirdPartyCaveat) caveat).getCopyOfLocations();
+                        definedLocations.retainAll(optionalAllowedDischargeLocations.get());
+                        if (definedLocations.isEmpty()) return false;
+                    }
 
                     // Only third-party caveats that have not been discharged.
                     ByteBuffer wrappedIdentifier = ByteBuffer.wrap(caveat.getCaveatIdentifier());

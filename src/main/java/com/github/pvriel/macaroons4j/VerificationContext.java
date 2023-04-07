@@ -32,8 +32,8 @@ public class VerificationContext {
      * @return  The currently holding membership constraints.
      */
     @NotNull
-    public HashMap<@NotNull String, @NotNull Set<@NotNull String>> getCopyOfMembershipConstraints() {
-        HashMap<String, Set<String>> returnValue = new HashMap<>();
+    public HashMap<@NotNull String, @NotNull HashSet<@NotNull String>> getCopyOfMembershipConstraints() {
+        HashMap<String, HashSet<String>> returnValue = new HashMap<>();
         for (String membershipUUID : membershipConstraints.keySet()) returnValue.put(membershipUUID, getCopyOfMembershipConstraint(membershipUUID));
         return returnValue;
     }

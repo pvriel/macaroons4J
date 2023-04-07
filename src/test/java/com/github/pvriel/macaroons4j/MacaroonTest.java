@@ -352,7 +352,7 @@ public abstract class MacaroonTest {
     }
 
     @Test
-    @DisplayName("The third-party caveats for specific target locations can be properly found.")
+    @DisplayName("The third-party caveats (for specific target locations) can be properly found.")
     public void test15() throws Exception {
         String locationOne = generateRandomStringOfLength(256);
         String locationTwo = generateRandomStringOfLength(256);
@@ -363,8 +363,10 @@ public abstract class MacaroonTest {
         macaroon.addCaveat(new MembershipConstraintFirstPartyCaveat(generateRandomStringOfLength(256), new HashSet<>(Set.of(generateRandomStringOfLength(256)))));
         ThirdPartyCaveat thirdPartyCaveatOne = new ThirdPartyCaveat(secretKeyThirdPartyCaveatOne, generateRandomStringOfLength(256).getBytes(StandardCharsets.UTF_8), Set.of(locationOne, locationTwo));
         ThirdPartyCaveat thirdPartyCaveatTwo = new ThirdPartyCaveat(generateRandomStringOfLength(256), generateRandomStringOfLength(256).getBytes(StandardCharsets.UTF_8), Set.of(locationOne, locationTwo));
+        ThirdPartyCaveat thirdPartyCaveatThree = new ThirdPartyCaveat(generateRandomStringOfLength(256), generateRandomStringOfLength(256).getBytes(StandardCharsets.UTF_8), Set.of(locationOne));
         thirdPartyCaveatOne = macaroon.addCaveat(thirdPartyCaveatOne);
         macaroon.addCaveat(thirdPartyCaveatTwo);
+        thirdPartyCaveatThree = macaroon.addCaveat(thirdPartyCaveatThree);
 
         Macaroon dischargeMacaroonThirdPartyCaveatTwo = generateMacaroon(secretKeyThirdPartyCaveatOne, thirdPartyCaveatTwo.getCaveatIdentifier(), "");
         macaroon.bindMacaroonForRequest(dischargeMacaroonThirdPartyCaveatTwo);
@@ -373,6 +375,11 @@ public abstract class MacaroonTest {
         HashSet<ThirdPartyCaveat> foundCaveats = macaroon.getAllNonDischargedThirdPartyCaveats(possibleLocations);
         assertEquals(1, foundCaveats.size());
         assertEquals(thirdPartyCaveatOne, foundCaveats.iterator().next());
+
+        foundCaveats = macaroon.getAllNonDischargedThirdPartyCaveats();
+        assertEquals(2, foundCaveats.size());
+        assertTrue(foundCaveats.contains(thirdPartyCaveatOne));
+        assertTrue(foundCaveats.contains(thirdPartyCaveatThree));
     }
 
 
