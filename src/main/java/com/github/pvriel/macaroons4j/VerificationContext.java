@@ -1,6 +1,8 @@
 package com.github.pvriel.macaroons4j;
 
+import com.github.pvriel.macaroons4j.simple.SimpleMacaroon;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
@@ -208,6 +210,31 @@ public class VerificationContext {
                                 @NotNull Map<@NotNull String, @NotNull Pair<@NotNull Long, @NotNull Long>> rangeConstraints) {
         this.membershipConstraints = new HashMap<>(membershipConstraints);
         this.rangeConstraints = new HashMap<>(rangeConstraints);
+    }
+
+    /**
+     * Method to express the verification context in a Macaroon.
+     * @param   secret
+     *          The secret key for the Macaroon.
+     * @param   macaroonIdentifier
+     *          The identifier for the Macaroon.
+     * @param   hintTargetLocations
+     *          The hint target locations for the Macaroon.
+     * @return  A Macaroon that expresses the verification context.
+     */
+    public Macaroon expressVerificationContextInMacaroon(String secret, byte[] macaroonIdentifier, Set<String> hintTargetLocations) {
+        SimpleMacaroon macaroon = new SimpleMacaroon(secret, macaroonIdentifier, hintTargetLocations);
+        for (var membershipConstraintEntry : membershipConstraints.entrySet()) {
+            String membershipUUID = membershipConstraintEntry.getKey();
+            Set<String> membershipElements = membershipConstraintEntry.getValue();
+            macaroon.addCaveat(new MembershipConstraintFirstPartyCaveat(membershipUUID, new HashSet<>(membershipElements)));
+        }
+        for (var rangeConstraintEntry : rangeConstraints.entrySet()) {
+            String rangeUUID = rangeConstraintEntry.getKey();
+            Pair<Long, Long> range = rangeConstraintEntry.getValue();
+            macaroon.addCaveat(new RangeConstraintFirstPartyCaveat(rangeUUID, range.getLeft(), range.getRight()));
+        }
+        return macaroon;
     }
 
     /**
